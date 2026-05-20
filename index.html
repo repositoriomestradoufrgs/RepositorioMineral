@@ -1,578 +1,375 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Visualizador GLTF Local</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Visualizador 3D e Índice de Modelos</title>
+    <!-- Carregamento do Tailwind CSS para estilo moderno -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Configuração do Tailwind para usar a fonte Inter -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
     <style>
-        * {
+        /* Estilo base para garantir que o canvas ocupe todo o espaço do visualizador */
+        body, html, #viewer-container {
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1a2a6c, #2c3e50);
-            color: #fff;
-            height: 100vh;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .header {
-            padding: 15px 20px;
-            text-align: center;
-            background: rgba(0, 0, 0, 0.4);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-            z-index: 10;
-        }
-        
-        h1 {
-            font-size: 1.4rem;
-            margin-bottom: 5px;
-            color: #4fc3f7;
-        }
-        
-        .subtitle {
-            font-size: 0.9rem;
-            opacity: 0.8;
-        }
-        
-        .container {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            position: relative;
-        }
-        
-        #canvas-container {
-            flex: 1;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        #renderCanvas {
-            position: absolute;
-            top: 0;
-            left: 0;
             width: 100%;
             height: 100%;
-            touch-action: none;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
         }
-        
-        .controls {
-            display: flex;
-            gap: 10px;
-            padding: 15px;
-            background: rgba(0, 0, 0, 0.4);
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-        
-        .btn {
-            background: rgba(44, 62, 80, 0.8);
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 50px;
-            font-size: 0.9rem;
-            cursor: pointer;
-            transition: all 0.3s;
-            min-width: 120px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-        
-        .btn:hover {
-            background: rgba(52, 152, 219, 0.9);
-            transform: translateY(-2px);
-        }
-        
-        .btn:active {
-            transform: translateY(1px);
-        }
-        
-        .loading {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-            z-index: 5;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 20px;
-            border-radius: 10px;
-            display: none;
-        }
-        
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 5px solid rgba(255, 255, 255, 0.1);
-            border-radius: 50%;
-            border-top: 5px solid #4fc3f7;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 15px;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .info-panel {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(0, 0, 0, 0.6);
-            padding: 15px;
-            border-radius: 10px;
-            max-width: 250px;
-            backdrop-filter: blur(5px);
-            display: none;
-        }
-        
-        .info-panel h3 {
-            margin-bottom: 10px;
-            color: #4fc3f7;
-        }
-        
-        .stats {
-            font-size: 0.85rem;
-            line-height: 1.6;
-        }
-        
-        .model-info {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            background: rgba(0, 0, 0, 0.6);
-            padding: 10px 15px;
-            border-radius: 10px;
-            backdrop-filter: blur(5px);
-            max-width: 300px;
-        }
-        
-        .file-selector {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(26, 42, 108, 0.9);
-            z-index: 20;
-            padding: 20px;
-            text-align: center;
-        }
-        
-        .file-drop-area {
-            border: 2px dashed #4fc3f7;
-            border-radius: 10px;
-            padding: 40px 20px;
-            margin: 20px 0;
-            width: 90%;
-            max-width: 400px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .file-drop-area:hover {
-            background: rgba(79, 195, 247, 0.1);
-        }
-        
-        .file-input {
-            display: none;
-        }
-        
-        .file-label {
-            background: #3498db;
-            color: white;
-            padding: 12px 24px;
-            border-radius: 50px;
-            cursor: pointer;
-            font-weight: bold;
-            margin-top: 15px;
-            display: inline-block;
-            transition: background 0.3s;
-        }
-        
-        .file-label:hover {
-            background: #2980b9;
-        }
-        
-        .instructions {
-            margin-top: 20px;
-            font-size: 0.9rem;
-            max-width: 500px;
-        }
-        
-        @media (max-width: 768px) {
-            .header {
-                padding: 10px;
-            }
-            
-            h1 {
-                font-size: 1.2rem;
-            }
-            
-            .subtitle {
-                font-size: 0.8rem;
-            }
-            
-            .btn {
-                padding: 8px 12px;
-                font-size: 0.8rem;
-                min-width: 100px;
-            }
-            
-            .controls {
-                padding: 10px;
-            }
-            
-            .model-info {
-                font-size: 0.8rem;
-                bottom: 10px;
-                left: 10px;
-                right: 10px;
-                max-width: none;
-            }
+        canvas {
+            display: block;
         }
     </style>
 </head>
-<body>
-    <div class="header">
-        <h1>Visualizador GLTF Local</h1>
-        <div class="subtitle">Carregue modelos 3D diretamente do seu dispositivo</div>
-    </div>
-    
-    <div class="container">
-        <div id="canvas-container">
-            <canvas id="renderCanvas"></canvas>
-            <div class="loading" id="loadingIndicator">
-                <div class="spinner"></div>
-                <div>Carregando modelo 3D...</div>
-            </div>
-        </div>
+<!-- MUDANÇA: Fundo do corpo alterado para cinza escuro (quase preto) -->
+<body class="bg-gray-900">
+
+    <!-- ÍNDICE DE MODELOS -->
+    <div id="model-list" class="min-h-screen p-8 md:p-12 lg:p-16">
+        <!-- MUDANÇA: Cor do título alterada para branco para alto contraste -->
+        <h1 class="text-4xl font-extrabold text-white mb-8 text-center">
+            Catálogo de Modelos 3D
+        </h1>
         
-        <div class="file-selector" id="fileSelector">
-            <h2>Visualizador GLTF para Celulares</h2>
-            <p>Carregue um arquivo GLTF ou GLB do seu dispositivo</p>
-            
-            <div class="file-drop-area" id="dropArea">
-                <p>Arraste e solte seu arquivo GLTF/GLB aqui</p>
-                <p>ou</p>
-                <input type="file" id="fileInput" class="file-input" accept=".gltf,.glb">
-                <label for="fileInput" class="file-label">Selecionar Arquivo</label>
-            </div>
-            
-            <div class="instructions">
-                <p><strong>Instruções:</strong></p>
-                <p>1. Toque no botão acima para selecionar um arquivo .gltf ou .glb</p>
-                <p>2. Seu modelo será carregado diretamente do dispositivo (sem upload)</p>
-                <p>3. Toque e arraste para girar o modelo</p>
-                <p>4. Use os controles abaixo para ajustar a visualização</p>
-            </div>
+        <!-- O grid será populado via JavaScript -->
+        <div id="model-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+            <!-- Conteúdo dinâmico aqui -->
         </div>
-        
-        <div class="info-panel" id="infoPanel">
-            <h3>Informações do Modelo</h3>
-            <div class="stats">
-                <div><strong>Vértices:</strong> <span id="vertex-count">0</span></div>
-                <div><strong>Triângulos:</strong> <span id="triangle-count">0</span></div>
-                <div><strong>Materiais:</strong> <span id="material-count">0</span></div>
-                <div><strong>Texturas:</strong> <span id="texture-count">0</span></div>
-            </div>
-        </div>
-        
-        <div class="model-info" id="modelInfo">
-            <strong>Modelo:</strong> Nenhum carregado | <strong>Toque e arraste</strong> para girar
-        </div>
-    </div>
-    
-    <div class="controls">
-        <button class="btn" id="resetBtn">
-            <i>↺</i> Resetar Vista
-        </button>
-        <button class="btn" id="wireframeBtn">
-            <i>▦</i> Wireframe
-        </button>
-        <button class="btn" id="infoBtn">
-            <i>ℹ️</i> Informações
-        </button>
     </div>
 
-    <!-- Three.js from CDN (minified) -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.150.0/build/three.min.js"></script>
-    <!-- GLTFLoader from CDN (minified) -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.150.0/examples/jsm/loaders/GLTFLoader.min.js"></script>
-    <!-- OrbitControls from CDN (minified) -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.150.0/examples/jsm/controls/OrbitControls.min.js"></script>
-    
-    <script>
-        // Configuração principal
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x1a2a6c);
-        scene.fog = new THREE.Fog(0x1a2a6c, 10, 30);
+    <!-- VISUALIZADOR 3D -->
+    <div id="viewer-container" class="hidden relative w-full h-screen">
+        <!-- O canvas será anexado aqui -->
         
-        // Configuração da câmera
-        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 1, 5);
+        <!-- Botão Voltar -->
+        <button id="back-button" class="absolute top-4 left-4 z-10 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition duration-150 ease-in-out flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0.25 0.25 23.5 23.5" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+            </svg>
+            Voltar ao Catálogo
+        </button>
         
-        // Configuração do renderizador
-        const renderer = new THREE.WebGLRenderer({
-            canvas: document.getElementById('renderCanvas'),
-            antialias: true,
-            powerPreference: "low-power"
-        });
-        renderer.setPixelRatio(window.devicePixelRatio);
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.outputEncoding = THREE.sRGBEncoding;
+        <!-- Controles de Status (Carregamento e Erro) -->
+        <div id="loading" class="absolute top-16 left-4 z-10 bg-white p-3 rounded-lg shadow-md font-medium text-gray-700 transition duration-300">
+            Carregando...
+        </div>
+        <div id="error" class="absolute top-16 left-4 z-10 bg-red-100 border border-red-400 text-red-700 p-3 rounded-lg shadow-md font-medium hidden">
+            Ocorreu um erro no carregamento.
+        </div>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'https://cdn.skypack.dev/three@0.136.0';
+        import { OrbitControls } from 'https://cdn.skypack.dev/three@0.136.0/examples/jsm/controls/OrbitControls.js';
+        import { GLTFLoader } from 'https://cdn.skypack.dev/three@0.136.0/examples/jsm/loaders/GLTFLoader.js';
+        import { DRACOLoader } from 'https://cdn.skypack.dev/three@0.136.0/examples/jsm/loaders/DRACOLoader.js';
         
-        // Controles de órbita
-        const controls = new THREE.OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;
-        controls.dampingFactor = 0.05;
-        controls.screenSpacePanning = false;
-        controls.minDistance = 1;
-        controls.maxDistance = 10;
-        controls.enablePan = true;
-        
-        // Luzes
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-        scene.add(ambientLight);
-        
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        directionalLight.position.set(3, 10, 5);
-        directionalLight.castShadow = false; // Desativado para melhor desempenho em dispositivos móveis
-        scene.add(directionalLight);
-        
-        // Carregador GLTF
-        const loader = new THREE.GLTFLoader();
-        let model = null;
-        
-        // Elementos da UI
-        const loadingElement = document.getElementById('loadingIndicator');
-        const fileSelector = document.getElementById('fileSelector');
-        const dropArea = document.getElementById('dropArea');
-        const fileInput = document.getElementById('fileInput');
-        const infoPanel = document.getElementById('infoPanel');
-        const modelInfo = document.getElementById('modelInfo');
-        const resetBtn = document.getElementById('resetBtn');
-        const wireframeBtn = document.getElementById('wireframeBtn');
-        const infoBtn = document.getElementById('infoBtn');
-        
-        // Estatísticas de desempenho
-        let vertexCount = 0;
-        let triangleCount = 0;
-        let materialCount = 0;
-        let textureCount = 0;
-        
-        // Função para carregar um modelo GLTF/GLB
-        function loadModel(file) {
-            if (!file) return;
-            
-            // Mostrar indicador de carregamento
-            loadingElement.style.display = 'block';
-            fileSelector.style.display = 'none';
-            
-            const fileName = file.name;
-            const fileSize = (file.size / 1024 / 1024).toFixed(2) + ' MB';
-            modelInfo.innerHTML = `<strong>Modelo:</strong> ${fileName} (${fileSize}) | <strong>Toque e arraste</strong> para girar`;
-            
-            // Criar URL temporária para o arquivo
-            const fileURL = URL.createObjectURL(file);
-            
-            // Carregar o modelo
-            loader.load(fileURL, (gltf) => {
-                // Remover modelo anterior, se existir
-                if (model) {
-                    scene.remove(model);
+        // ===========================================
+        // 1. DADOS DOS MODELOS (AGORA COM CAMINHOS RELATIVOS)
+        // Você deve garantir que esses arquivos existam na estrutura de pastas correta
+        // ===========================================
+        const MODELS_DATA = [
+            {
+                id: 'model-a',
+                name: 'Calcita Original',
+                gltfUrl: './CalcitaPancakeBase.glb', // Caminho relativo para o seu modelo original
+                thumbnailUrl: './images/calcita_original.png', // Caminho relativo para a miniatura
+                description: 'Seu modelo original Calcita, otimizado para visualização com alta exposição.',
+            },
+            {
+                id: 'model-b',
+                name: 'APF1',
+                gltfUrl: './models/APF1-v1.glb', // Exemplo de modelo em uma subpasta 'models'
+                thumbnailUrl: './images/APF1-v1.png',
+                description: 'Um robô amigável, pronto para ser inspecionado.',
+            },
+            {
+                id: 'model-c',
+                name: 'Capacete de Voo',
+                gltfUrl: './models/FlightHelmet.gltf',
+                thumbnailUrl: './images/capacete_voo.png',
+                description: 'Um modelo complexo PBR para testar materiais.',
+            },
+            {
+                id: 'model-d',
+                name: 'Sala Viking',
+                gltfUrl: './models/VikingRoom.gltf',
+                thumbnailUrl: './images/sala_viking.png',
+                description: 'Cena completa para testar iluminação ambiente.',
+            },
+        ];
+
+        // ===========================================
+        // 2. VARIÁVEIS DE DOM E ESTADO
+        // ===========================================
+        const modelListElement = document.getElementById('model-list');
+        const modelGridElement = document.getElementById('model-grid');
+        const viewerContainer = document.getElementById('viewer-container');
+        const loadingElement = document.getElementById('loading');
+        const errorElement = document.getElementById('error');
+        const backButton = document.getElementById('back-button');
+
+        let scene, camera, renderer, controls, currentModel, ambientLight, directionalLight, fillLight;
+        let animationFrameId = null;
+
+        // ===========================================
+        // 3. FUNÇÕES DE GERENCIAMENTO DE VIEW
+        // ===========================================
+
+        /**
+         * Alterna para a visualização do catálogo (Índice).
+         */
+        function showIndex() {
+            // Esconde o visualizador
+            viewerContainer.classList.add('hidden');
+            // Mostra o catálogo
+            modelListElement.classList.remove('hidden');
+
+            // Limpa o ambiente Three.js se estiver ativo
+            if (renderer) {
+                // Para o loop de animação
+                if (animationFrameId) {
+                    cancelAnimationFrame(animationFrameId);
+                    animationFrameId = null;
                 }
-                
-                model = gltf.scene;
-                model.scale.set(0.8, 0.8, 0.8);
-                model.position.y = -1;
-                scene.add(model);
-                
-                // Centralizar modelo
-                centerModel();
-                
-                // Calcular estatísticas
-                calculateModelStats();
-                
-                // Esconder indicador de carregamento
-                loadingElement.style.display = 'none';
-                
-            }, undefined, (error) => {
-                console.error('Erro ao carregar modelo:', error);
-                loadingElement.innerHTML = '<div>Erro ao carregar o modelo. O arquivo pode estar corrompido ou em formato não suportado.</div>';
-                
-                // Mostrar seletor de arquivo novamente após 3 segundos
-                setTimeout(() => {
-                    fileSelector.style.display = 'flex';
-                    loadingElement.style.display = 'none';
-                }, 3000);
+                // Remove o canvas para limpar a memória
+                const canvas = renderer.domElement;
+                if (canvas) {
+                    canvas.remove();
+                }
+                // Limpa a cena e o renderizador (opcional, mas boa prática)
+                renderer.dispose();
+                scene.clear();
+                renderer = null;
+                controls = null;
+                // O garbage collector fará o resto
+            }
+        }
+
+        /**
+         * Alterna para a visualização 3D e inicia o carregamento do modelo.
+         * @param {string} modelUrl - URL do arquivo GLTF/GLB.
+         */
+        function showViewer(modelUrl) {
+            // Esconde o catálogo
+            modelListElement.classList.add('hidden');
+            // Mostra o visualizador
+            viewerContainer.classList.remove('hidden');
+
+            // Limpa mensagens de status
+            loadingElement.textContent = 'Carregando...';
+            loadingElement.classList.remove('hidden');
+            errorElement.classList.add('hidden');
+            
+            // Inicializa e carrega o modelo
+            initThreeJs();
+            loadModel(modelUrl);
+        }
+
+        // ===========================================
+        // 4. FUNÇÕES DE RENDERIZAÇÃO DO ÍNDICE
+        // ===========================================
+
+        /**
+         * Cria um cartão de miniatura para o modelo.
+         * @param {object} model - Objeto de dados do modelo.
+         */
+        function createModelCard(model) {
+            const card = document.createElement('div');
+            // Cartão com fundo branco mantido, como solicitado
+            card.className = 'bg-white rounded-xl shadow-xl overflow-hidden cursor-pointer hover:shadow-2xl hover:scale-[1.02] transition duration-300 ease-in-out';
+            card.onclick = () => showViewer(model.gltfUrl);
+
+            card.innerHTML = `
+                <!-- Miniatura -->
+                <div class="h-48 overflow-hidden bg-gray-200">
+                    <!-- O src agora usa um caminho relativo -->
+                    <img src="${model.thumbnailUrl}" alt="Miniatura de ${model.name}" onerror="this.onerror=null;this.src='https://placehold.co/300x200/94A3B8/ffffff?text=Thumbnail+Indispon%C3%ADvel';" 
+                         class="w-full h-full object-cover transition-opacity duration-500 hover:opacity-90">
+                </div>
+                <!-- Detalhes -->
+                <div class="p-5">
+                    <h3 class="text-xl font-bold text-gray-800 truncate">${model.name}</h3>
+                    <p class="text-sm text-gray-500 mt-1 line-clamp-2">${model.description}</p>
+                    <button class="mt-4 w-full bg-indigo-500 text-white py-2 rounded-lg font-medium hover:bg-indigo-600 transition">Visualizar 3D</button>
+                </div>
+            `;
+            return card;
+        }
+
+        /**
+         * Popula o grid do catálogo com os cartões de modelo.
+         */
+        function renderIndex() {
+            modelGridElement.innerHTML = '';
+            MODELS_DATA.forEach(model => {
+                modelGridElement.appendChild(createModelCard(model));
             });
         }
-        
-        // Centralizar modelo na cena
-        function centerModel() {
-            if (!model) return;
+
+        // ===========================================
+        // 5. SETUP DO THREE.JS (VISUALIZADOR)
+        // ===========================================
+
+        /**
+         * Configura a cena, câmera, renderizador e controles.
+         */
+        function initThreeJs() {
+            // Se já estiver inicializado, apenas limpa a cena
+            if (renderer) {
+                scene.clear();
+                return;
+            }
+
+            // 1. Configuração básica
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 1.0, 2.5); // Posição de visualização padrão
+
+            // 2. Configuração do Renderizador
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.outputEncoding = THREE.sRGBEncoding;
+            renderer.physicallyCorrectLights = true;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.8; // Exposição alta
+            renderer.shadowMap.enabled = false;
             
-            const box = new THREE.Box3().setFromObject(model);
-            const center = new THREE.Vector3();
-            box.getCenter(center);
+            // Adiciona o canvas ao container
+            viewerContainer.appendChild(renderer.domElement);
+
+            // 3. Fundo e Controles
+            scene.background = new THREE.Color(0xeeeeee); // Fundo cinza claro para o modelo 3D
             
-            model.position.sub(center);
-            controls.reset();
-            camera.position.set(0, 1, 5);
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+
+            // 4. Iluminação (Otimizada para PBR e clareza)
+            ambientLight = new THREE.AmbientLight(0xffffff, 1.0); 
+            scene.add(ambientLight);
+
+            directionalLight = new THREE.DirectionalLight(0xffffff, 3.0);
+            directionalLight.position.set(3, 5, 2);
+            scene.add(directionalLight);
+
+            fillLight = new THREE.DirectionalLight(0xffffff, 1.5);
+            fillLight.position.set(-3, 2, -2);
+            scene.add(fillLight);
+            
+            // Inicia o loop de animação
+            animate();
         }
-        
-        // Calcular estatísticas do modelo
-        function calculateModelStats() {
-            if (!model) return;
+
+        /**
+         * Carrega o modelo 3D GLTF/GLB na cena.
+         * @param {string} modelUrl - URL do arquivo GLTF/GLB.
+         */
+        function loadModel(modelUrl) {
+            // Remove o modelo anterior, se houver
+            if (currentModel) {
+                scene.remove(currentModel);
+                currentModel = null;
+            }
+
+            // Configuração dos loaders
+            const dracoLoader = new DRACOLoader();
+            // O caminho do decoder DRACO continua como URL externa
+            dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
             
-            vertexCount = 0;
-            triangleCount = 0;
-            materialCount = 0;
-            textureCount = 0;
+            const loader = new GLTFLoader();
+            loader.setDRACOLoader(dracoLoader);
             
-            const materialSet = new Set();
-            const textureSet = new Set();
-            
-            model.traverse((child) => {
-                if (child.isMesh) {
-                    const geometry = child.geometry;
+            loadingElement.classList.remove('hidden');
+
+            loader.load(
+                modelUrl, // O loader agora usa o caminho relativo
+                (gltf) => {
+                    // Centraliza o modelo e o ajusta ao tamanho da cena (opcional, mas recomendado)
+                    const box = new THREE.Box3().setFromObject(gltf.scene);
+                    const center = box.getCenter(new THREE.Vector3());
+                    gltf.scene.position.sub(center); // Move o modelo para o centro
+
+                    scene.add(gltf.scene);
+                    currentModel = gltf.scene;
                     
-                    if (geometry) {
-                        vertexCount += geometry.attributes.position.count;
-                        
-                        if (geometry.index) {
-                            triangleCount += geometry.index.count / 3;
-                        } else {
-                            triangleCount += geometry.attributes.position.count / 3;
-                        }
-                    }
-                    
-                    if (child.material) {
-                        materialSet.add(child.material);
-                        
-                        // Verificar texturas
-                        for (const key in child.material) {
-                            const value = child.material[key];
-                            if (value && value.isTexture) {
-                                textureSet.add(value);
+                    // Ajuste de Materiais (Mesma lógica do original)
+                    gltf.scene.traverse((child) => {
+                        if (child.isMesh) {
+                            child.material.envMapIntensity = 0.3;
+                            child.material.metalness = 0.1;
+                            child.material.roughness = 0.7;
+                            child.material.needsUpdate = true;
+                            
+                            // Garante que materiais não-Standard sejam convertidos (se necessário)
+                            if (!child.material.isMeshStandardMaterial) {
+                                child.material = new THREE.MeshStandardMaterial({
+                                    color: child.material.color,
+                                    map: child.material.map,
+                                    metalness: 0.1,
+                                    roughness: 0.7
+                                });
                             }
                         }
-                    }
+                    });
+
+                    loadingElement.classList.add('hidden');
+                },
+                (xhr) => {
+                    // Exibe o progresso de carregamento
+                    const progress = (xhr.loaded / xhr.total * 100).toFixed(2);
+                    loadingElement.textContent = `Carregando: ${progress}%`;
+                },
+                (error) => {
+                    // Lidar com erro
+                    console.error('Erro ao carregar o modelo:', error);
+                    errorElement.textContent = `Erro ao carregar o modelo: ${error.message}`;
+                    errorElement.classList.remove('hidden');
+                    loadingElement.classList.add('hidden');
                 }
-            });
-            
-            document.getElementById('vertex-count').textContent = vertexCount.toLocaleString();
-            document.getElementById('triangle-count').textContent = triangleCount.toLocaleString();
-            document.getElementById('material-count').textContent = materialSet.size;
-            document.getElementById('texture-count').textContent = textureSet.size;
+            );
         }
-        
-        // Event listeners para controles
-        resetBtn.addEventListener('click', () => {
-            centerModel();
-        });
-        
-        wireframeBtn.addEventListener('click', () => {
-            if (!model) return;
-            
-            model.traverse((child) => {
-                if (child.isMesh) {
-                    child.material.wireframe = !child.material.wireframe;
-                }
-            });
-            
-            wireframeBtn.innerHTML = wireframeBtn.innerHTML.includes('ON') ? 
-                '<i>▦</i> Wireframe' : '<i>▦</i> Wireframe ON';
-        });
-        
-        infoBtn.addEventListener('click', () => {
-            infoPanel.style.display = infoPanel.style.display === 'block' ? 'none' : 'block';
-        });
-        
-        // Event listeners para seletor de arquivo
-        fileInput.addEventListener('change', (event) => {
-            if (event.target.files.length > 0) {
-                loadModel(event.target.files[0]);
-            }
-        });
-        
-        // Drag and drop
-        dropArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropArea.style.background = 'rgba(79, 195, 247, 0.2)';
-        });
-        
-        dropArea.addEventListener('dragleave', () => {
-            dropArea.style.background = '';
-        });
-        
-        dropArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropArea.style.background = '';
-            
-            if (e.dataTransfer.files.length > 0) {
-                const file = e.dataTransfer.files[0];
-                
-                // Verificar se é um arquivo GLTF/GLB
-                if (file.name.endsWith('.gltf') || file.name.endsWith('.glb')) {
-                    loadModel(file);
-                } else {
-                    alert('Por favor, selecione um arquivo GLTF ou GLB.');
-                }
-            }
-        });
-        
-        // Atualizar tamanho do renderizador na mudança de janela
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
-        
-        // Função de animação
+
+        // ===========================================
+        // 6. LOOP DE ANIMAÇÃO E RESPONSIVIDADE
+        // ===========================================
+
         function animate() {
-            requestAnimationFrame(animate);
-            controls.update();
-            renderer.render(scene, camera);
+            animationFrameId = requestAnimationFrame(animate);
+            if (controls) controls.update();
+            if (renderer && scene && camera) renderer.render(scene, camera);
         }
-        
-        // Iniciar animação
-        animate();
-        
-        // Otimizações para dispositivos móveis
-        function handleMobileOptimizations() {
-            // Reduzir qualidade em dispositivos móveis
-            if ('ontouchstart' in window || navigator.maxTouchPoints) {
-                renderer.setPixelRatio(1);
-                scene.fog.near = 5;
-                scene.fog.far = 20;
-                
-                // Desativar sombras para melhor desempenho
-                directionalLight.castShadow = false;
-                
-                // Ajustar controles para touch
-                controls.enableRotate = true;
-                controls.enableZoom = true;
-                controls.enablePan = false;
+
+        window.addEventListener('resize', () => {
+            if (camera && renderer) {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
             }
-        }
+        });
+
+        // ===========================================
+        // 7. INICIALIZAÇÃO
+        // ===========================================
+
+        // Botão de retorno
+        backButton.addEventListener('click', showIndex);
         
-        handleMobileOptimizations();
+        // Renderiza o catálogo ao iniciar a página
+        renderIndex();
+        
     </script>
 </body>
 </html>
