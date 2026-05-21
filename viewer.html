@@ -1,331 +1,46 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Visualizador 3D | Modelo Interativo</title>
-    <style>
-        body {
-            margin: 0;
-            overflow: hidden;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        #info {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            background: rgba(0,0,0,0.7);
-            padding: 10px 20px;
-            border-radius: 30px;
-            color: white;
-            backdrop-filter: blur(5px);
-            pointer-events: none;
-            z-index: 10;
-            font-size: 14px;
-            border-left: 4px solid #ff8800;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-        }
-        #controls-note {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            background: rgba(0,0,0,0.6);
-            padding: 6px 12px;
-            border-radius: 20px;
-            color: #ccc;
-            font-size: 12px;
-            pointer-events: none;
-            z-index: 10;
-            font-family: monospace;
-        }
-        .back-button {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(0,0,0,0.7);
-            color: white;
-            border: none;
-            padding: 10px 18px;
-            border-radius: 40px;
-            cursor: pointer;
-            font-weight: bold;
-            backdrop-filter: blur(5px);
-            transition: all 0.2s ease;
-            z-index: 20;
-            font-size: 16px;
-            text-decoration: none;
-            font-family: inherit;
-            display: inline-block;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-            border: 1px solid rgba(255,255,255,0.2);
-        }
-        .back-button:hover {
-            background: #ff8800;
-            color: black;
-            transform: scale(1.02);
-        }
-        .loading {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0,0,0,0.8);
-            color: white;
-            padding: 15px 30px;
-            border-radius: 50px;
-            font-size: 18px;
-            z-index: 100;
-            pointer-events: none;
-            font-weight: bold;
-            letter-spacing: 1px;
-            backdrop-filter: blur(8px);
-            border: 1px solid #ffaa44;
-        }
-        @media (max-width: 600px) {
-            .back-button { padding: 6px 12px; font-size: 14px; top: 12px; right: 12px; }
-            #info { font-size: 10px; top: 12px; left: 12px; }
-        }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizador Imersivo</title>
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Importando a biblioteca model-viewer -->
+    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
 </head>
-<body>
-    <div id="info">
-        🧭 <span id="model-name">Carregando modelo...</span>
-    </div>
-    <a href="index.html" class="back-button">← Voltar à galeria</a>
-    <div id="controls-note">
-        🖱️ Arraste para girar | Clique com botão direito e arraste para mover | Scroll para zoom
-    </div>
-    <div id="loading-overlay" class="loading">
-        ⏳ Carregando modelo 3D...
+<body class="viewer-page">
+    <nav>
+        <a href="index.html" class="back-button">← Voltar ao Catálogo</a>
+        <h2 id="model-name">Carregando Modelo...</h2>
+    </nav>
+
+    <div class="viewer-container">
+        <!-- O componente de visualização -->
+        <model-viewer 
+            id="dynamic-viewer" 
+            alt="Modelo 3D" 
+            auto-rotate 
+            camera-controls 
+            shadow-intensity="1"
+            exposure="1.2">
+        </model-viewer>
     </div>
 
-    <!-- Importação das bibliotecas Three.js e extensões -->
-    <script type="importmap">
-        {
-            "imports": {
-                "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
-                "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
-            }
-        }
-    </script>
-
-    <script type="module">
-        import * as THREE from 'three';
-        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-
-        // Obter o ID do modelo da URL
+    <script>
+        // Lógica para capturar o modelo correto da URL
         const urlParams = new URLSearchParams(window.location.search);
-        const modelId = urlParams.get('id');
-        
-        // Referência aos elementos da UI
-        const loadingDiv = document.getElementById('loading-overlay');
-        const modelNameSpan = document.getElementById('model-name');
-        
-        // Carregar a lista de modelos do arquivo models.js (global)
-        // Precisamos acessar a variável global 'modelsList' definida no models.js
-        // Como models.js é carregado antes via script no HTML, podemos usar window.modelsList
-        
-        let modelData = null;
-        
-        if (typeof window.modelsList !== 'undefined' && window.modelsList.length > 0) {
-            modelData = window.modelsList.find(m => m.id === modelId);
-        }
-        
-        if (!modelData) {
-            modelNameSpan.innerText = 'Modelo não encontrado';
-            loadingDiv.innerHTML = '❌ Modelo não encontrado. Verifique o ID.';
-            console.error('Modelo não encontrado para ID:', modelId);
-            // Ainda inicializa a cena mas sem modelo
-        } else {
-            modelNameSpan.innerText = modelData.name;
-        }
-        
-        // --- Configuração da Cena Three.js ---
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x050510); // Azul escuro profundo
-        scene.fog = new THREE.FogExp2(0x050510, 0.008); // Névoa suave
-        
-        // Câmera: perspectiva (ângulo, proporção, near, far)
-        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(2, 1.5, 3);
-        camera.lookAt(0, 0, 0);
-        
-        // Renderizador com transparência e suporte a sombras
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.shadowMap.enabled = true; // Ativa sombras
-        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-        renderer.setPixelRatio(window.devicePixelRatio);
-        document.body.appendChild(renderer.domElement);
-        
-        // Controles de órbita (permite girar/zoom)
-        const controls = new OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;      // Inércia suave
-        controls.dampingFactor = 0.05;
-        controls.rotateSpeed = 1.0;
-        controls.zoomSpeed = 1.2;
-        controls.panSpeed = 0.8;
-        controls.enableZoom = true;
-        controls.enablePan = true;
-        controls.target.set(0, 0.5, 0);
-        
-        // --- Iluminação dramática para destacar os modelos ---
-        // Luz ambiente suave
-        const ambientLight = new THREE.AmbientLight(0x404060);
-        scene.add(ambientLight);
-        
-        // Luz principal direcional (simula sol)
-        const mainLight = new THREE.DirectionalLight(0xffffff, 1.2);
-        mainLight.position.set(2, 5, 3);
-        mainLight.castShadow = true;
-        mainLight.receiveShadow = true;
-        mainLight.shadow.mapSize.width = 1024;
-        mainLight.shadow.mapSize.height = 1024;
-        scene.add(mainLight);
-        
-        // Luz de preenchimento traseira (backlight)
-        const backLight = new THREE.DirectionalLight(0x88aaff, 0.5);
-        backLight.position.set(-2, 1, -3);
-        scene.add(backLight);
-        
-        // Luz de realce lateral (quente)
-        const fillLight = new THREE.PointLight(0xffaa66, 0.4);
-        fillLight.position.set(1, 1.5, 2);
-        scene.add(fillLight);
-        
-        // Luz ambiente inferior suave
-        const fillBottom = new THREE.PointLight(0x88aaff, 0.3);
-        fillBottom.position.set(0, -1, 0);
-        scene.add(fillBottom);
-        
-        // Opcional: um chão reflexivo invisível, apenas para referência (grid helper)
-        const gridHelper = new THREE.GridHelper(8, 20, 0x88aaff, 0x335588);
-        gridHelper.position.y = -0.8;
-        gridHelper.material.transparent = true;
-        gridHelper.material.opacity = 0.35;
-        scene.add(gridHelper);
-        
-        // Eixo de referência (opcional, desabilitado por padrão)
-        // const axesHelper = new THREE.AxesHelper(2);
-        // scene.add(axesHelper);
-        
-        // Um piso reflexivo sutil (plano semi-transparente)
-        const planeMat = new THREE.MeshStandardMaterial({ color: 0x112233, roughness: 0.4, metalness: 0.7, transparent: true, opacity: 0.25 });
-        const groundPlane = new THREE.Mesh(new THREE.PlaneGeometry(5, 5), planeMat);
-        groundPlane.rotation.x = -Math.PI / 2;
-        groundPlane.position.y = -0.85;
-        groundPlane.receiveShadow = true;
-        scene.add(groundPlane);
-        
-        // Carregar o modelo 3D
-        let modelObject = null;
-        
-        if (modelData && modelData.modelUrl) {
-            const loader = new GLTFLoader();
-            const url = modelData.modelUrl;
+        const modelFile = urlParams.get('model');
+        const modelName = urlParams.get('name');
+
+        if (modelFile) {
+            const viewer = document.getElementById('dynamic-viewer');
+            viewer.src = `models/${modelFile}`; // Aponta para a pasta models
             
-            loader.load(url, 
-                (gltf) => {
-                    modelObject = gltf.scene;
-                    // Ajustar escala e posição base para caber na cena
-                    modelObject.traverse((node) => {
-                        if (node.isMesh) {
-                            node.castShadow = true;
-                            node.receiveShadow = true;
-                        }
-                    });
-                    
-                    // Calcular bounding box para centralizar e escalar automaticamente
-                    const box = new THREE.Box3().setFromObject(modelObject);
-                    const size = box.getSize(new THREE.Vector3());
-                    const maxDim = Math.max(size.x, size.y, size.z);
-                    const scale = 2.2 / maxDim;  // Ajusta para caber bem na tela
-                    modelObject.scale.set(scale, scale, scale);
-                    
-                    // Centralizar o modelo no chão (Y mínimo)
-                    const center = box.getCenter(new THREE.Vector3());
-                    modelObject.position.x = -center.x * scale;
-                    modelObject.position.z = -center.z * scale;
-                    modelObject.position.y = -box.min.y * scale;
-                    
-                    scene.add(modelObject);
-                    
-                    // Ajustar alvo da câmera para o centro do modelo
-                    const targetY = modelObject.position.y + (size.y * scale) / 2;
-                    controls.target.set(0, targetY, 0);
-                    
-                    // Esconder loading
-                    loadingDiv.style.opacity = '0';
-                    setTimeout(() => {
-                        loadingDiv.style.display = 'none';
-                    }, 500);
-                },
-                (xhr) => {
-                    // Progresso do carregamento
-                    const percent = Math.floor((xhr.loaded / xhr.total) * 100);
-                    loadingDiv.innerHTML = `⏳ Carregando modelo... ${percent}%`;
-                },
-                (error) => {
-                    console.error('Erro ao carregar o modelo:', error);
-                    loadingDiv.innerHTML = '❌ Erro ao carregar o modelo. Verifique o arquivo ou URL.';
-                    loadingDiv.style.background = 'rgba(150,0,0,0.8)';
-                    modelNameSpan.innerText = 'Erro no carregamento';
-                }
-            );
+            document.getElementById('model-name').textContent = modelName || 'Visualização 3D';
         } else {
-            // Caso não exista modelo, exibe mensagem na tela
-            loadingDiv.innerHTML = '⚠️ Nenhum modelo selecionado ou modelo não encontrado.';
-            loadingDiv.style.background = 'rgba(0,0,0,0.8)';
+            document.getElementById('model-name').textContent = 'Erro: Modelo não especificado.';
         }
-        
-        // Adicionar estrelas ou partículas de fundo (efeito imersivo)
-        const starGeometry = new THREE.BufferGeometry();
-        const starCount = 1500;
-        const starPositions = new Float32Array(starCount * 3);
-        for (let i = 0; i < starCount; i++) {
-            starPositions[i*3] = (Math.random() - 0.5) * 200;
-            starPositions[i*3+1] = (Math.random() - 0.5) * 100;
-            starPositions[i*3+2] = (Math.random() - 0.5) * 80 - 40;
-        }
-        starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
-        const starMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 0.08, transparent: true, opacity: 0.6 });
-        const stars = new THREE.Points(starGeometry, starMaterial);
-        scene.add(stars);
-        
-        // Animação suave das estrelas (rotação lenta)
-        function animateStars() {
-            stars.rotation.y += 0.0005;
-            stars.rotation.x += 0.0003;
-            requestAnimationFrame(animateStars);
-        }
-        animateStars();
-        
-        // Loop de renderização
-        function animate() {
-            requestAnimationFrame(animate);
-            controls.update(); // Atualiza controles (se houver interação)
-            renderer.render(scene, camera);
-        }
-        animate();
-        
-        // Ajustar tela quando redimensionada
-        window.addEventListener('resize', onWindowResize, false);
-        function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        }
-        
-        // Pequeno delay para mostrar o loading ao menos visualmente
-        setTimeout(() => {
-            if (loadingDiv.style.display !== 'none') {
-                loadingDiv.style.opacity = '0';
-                setTimeout(() => {
-                    loadingDiv.style.display = 'none';
-                }, 400);
-            }
-        }, 3000);
     </script>
 </body>
 </html>
