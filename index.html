@@ -121,8 +121,8 @@
 
   <!-- O primeiro modelo definido aqui deve ser o padrão inicial -->
   <model-viewer 
-    src="./models/CalcitaPancakeBase.glb" 
-    poster="./models/agata.webp" 
+    src="./assets/models/CalcitaPancakeBase.glb" 
+    poster="./assets/models/Calcita.png" 
     shadow-intensity="1" 
     exposure="1"
     ar 
@@ -140,7 +140,7 @@
 
     <div class="slider">
       <div class="slides">
-        <button class="slide selected" data-model="agata" aria-label="Ver Ágata em 3D" style="background-image: url('./assets/models/agata.webp');"></button>
+        <button class="slide selected" data-model="agata" aria-label="Ver Ágata em 3D" style="background-image: url('./assets/models/Calcita.png');"></button>
         <button class="slide" data-model="quartzo" aria-label="Ver Quartzo em 3D" style="background-image: url('./assets/models/quartzo.webp');"></button>
         <button class="slide" data-model="pirita" aria-label="Ver Pirita em 3D" style="background-image: url('./assets/models/pirita.webp');"></button>
       </div>
@@ -156,7 +156,7 @@
         const name = e.currentTarget.getAttribute('data-model');
         
         // Caminhos relativos usando "./" funcionam perfeitamente no GitHub Pages
-        const basePath = `./models/${name}`;
+        const basePath = `./assets/models/${name}`;
         
         modelViewer.src = `${basePath}.glb`;
         modelViewer.poster = `${basePath}.webp`;
