@@ -1,22 +1,176 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Acervo de Modelos 3D</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Visualizador de Amostras Minerais 3D</title>
+  
+  <!-- Importa o componente model-viewer nativo do Google -->
+  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
+
+  <style>
+    /* Garante que os elementos filhos fiquem ocultos enquanto o componente carrega */
+    :not(:defined) > * {
+      display: none;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    model-viewer {
+      width: 100vw;
+      height: 100vh;
+      background-color: #f5f5f7;
+      overflow-x: hidden;
+    }
+
+    #ar-button {
+      background-color: #ffffff;
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      white-space: nowrap;
+      bottom: 140px;
+      padding: 0px 16px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #222;
+      height: 40px;
+      line-height: 40px;
+      border-radius: 20px;
+      border: 1px solid #d2d2d7;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    #ar-button:active {
+      background-color: #f5f5f7;
+    }
+
+    #ar-failure {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 140px;
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      display: none;
+    }
+
+    model-viewer[ar-tracking="not-tracking"] > #ar-failure {
+      display: block;
+    }
+
+    .slider {
+      width: 100%;
+      text-align: center;
+      overflow: hidden;
+      position: absolute;
+      bottom: 24px;
+      z-index: 10;
+    }
+
+    .slides {
+      display: flex;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch;
+      padding: 0 20px;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    .slide {
+      scroll-snap-align: start;
+      flex-shrink: 0;
+      width: 80px;
+      height: 80px;
+      background-size: cover;
+      background-repeat: no-repeat;
+      background-position: center;
+      background-color: #fff;
+      border-radius: 12px;
+      border: 2px solid transparent;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      cursor: pointer;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+
+    .slide:hover {
+      transform: scale(1.05);
+    }
+
+    .slide.selected {
+      border-color: #0071e3;
+    }
+
+    .slide:focus-visible {
+      outline: 2px solid #0071e3;
+    }
+  </style>
 </head>
 <body>
-    <header>
-        <h1>Catálogo de Modelos 3D</h1>
-        <p>Selecione uma amostra para visualização interativa.</p>
-    </header>
 
-    <main class="gallery">
-        <!-- Item 1 -->
-        <a href="viewer.html?model=CalcitaPancakeBase.glb&name=Calcita" class="card">
-            <img src="thumbs/ametista-thumb.jpg" alt="Ametista">
-            <div class="card-title">Calcita</div>
-        </a>       
+  <!-- O primeiro modelo definido aqui deve ser o padrão inicial -->
+  <model-viewer 
+    src="./models/CalcitaPancakeBase.glb" 
+    poster="./models/agata.webp" 
+    shadow-intensity="1" 
+    exposure="1"
+    ar 
+    camera-controls 
+    touch-action="pan-y" 
+    alt="Visualizador 3D de Amostras Minerais">
+    
+    <button slot="ar-button" id="ar-button">
+      Ver em Realidade Aumentada (RA)
+    </button>
+
+    <button id="ar-failure">
+      A RA perdeu o rastreamento!
+    </button>
+
+    <div class="slider">
+      <div class="slides">
+        <button class="slide selected" data-model="agata" aria-label="Ver Ágata em 3D" style="background-image: url('./assets/models/agata.webp');"></button>
+        <button class="slide" data-model="quartzo" aria-label="Ver Quartzo em 3D" style="background-image: url('./assets/models/quartzo.webp');"></button>
+        <button class="slide" data-model="pirita" aria-label="Ver Pirita em 3D" style="background-image: url('./assets/models/pirita.webp');"></button>
+      </div>
+    </div>
+  </model-viewer>
+
+  <script type="module">
+    const modelViewer = document.querySelector("model-viewer");
+    const slides = document.querySelectorAll(".slide");
+
+    slides.forEach(slide => {
+      slide.addEventListener('click', (e) => {
+        const name = e.currentTarget.getAttribute('data-model');
+        
+        // Caminhos relativos usando "./" funcionam perfeitamente no GitHub Pages
+        const basePath = `./models/${name}`;
+        
+        modelViewer.src = `${basePath}.glb`;
+        modelViewer.poster = `${basePath}.webp`;
+        
+        // Atualiza a borda de seleção visual
+        slides.forEach(s => s.classList.remove("selected"));
+        e.currentTarget.classList.add("selected");
+      });
+    });
+
+    // Impede que interações no carrossel afetem a cena em Realidade Aumentada
+    document.querySelector(".slider").addEventListener('beforexrselect', (ev) => {
+      ev.preventDefault();
+    });
+  </script>
 </body>
 </html>
