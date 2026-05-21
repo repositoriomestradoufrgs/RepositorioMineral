@@ -1,173 +1,257 @@
-<model-viewer src="../../assets/ShopifyModels/Chair.glb" poster="../../assets/ShopifyModels/Chair.webp" shadow-intensity="1" ar camera-controls touch-action="pan-y" alt="A 3D model carousel">
-  
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <title>3D Model Carousel with AR – model-viewer</title>
+  <!-- Import the model-viewer component -->
+  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #f5f5f7;
+      font-family: system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+    }
+
+    /* Main container */
+    model-viewer {
+      width: 100%;
+      height: 70vh;
+      background-color: #eef2f5;
+      --progress-bar-color: #4285f4;
+      --progress-bar-height: 3px;
+    }
+
+    /* AR button styling (same as original but modernised) */
+    #ar-button {
+      background-image: url('https://fonts.gstatic.com/s/i/googlematerialicons/view_in_ar/v13/24px.svg');
+      background-repeat: no-repeat;
+      background-size: 20px 20px;
+      background-position: 12px 50%;
+      background-color: white;
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 132px;
+      padding: 0 16px 0 40px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #4285f4;
+      height: 36px;
+      line-height: 36px;
+      border-radius: 18px;
+      border: 1px solid #dadce0;
+      cursor: pointer;
+      z-index: 20;
+      white-space: nowrap;
+    }
+    #ar-button:active { background-color: #e8eaed; }
+    #ar-button:focus { outline: none; }
+    #ar-button:focus-visible { outline: 1px solid #4285f4; }
+
+    /* AR prompt animation */
+    @keyframes circle {
+      from { transform: translateX(-50%) rotate(0deg) translateX(50px) rotate(0deg); }
+      to   { transform: translateX(-50%) rotate(360deg) translateX(50px) rotate(-360deg); }
+    }
+    @keyframes elongate {
+      from { transform: translateX(100px); }
+      to   { transform: translateX(-100px); }
+    }
+    model-viewer > #ar-prompt {
+      position: absolute;
+      left: 50%;
+      bottom: 175px;
+      animation: elongate 2s infinite ease-in-out alternate;
+      display: none;
+      z-index: 20;
+    }
+    model-viewer[ar-status="session-started"] > #ar-prompt {
+      display: block;
+    }
+    model-viewer > #ar-prompt > img {
+      animation: circle 4s linear infinite;
+      width: 50px;
+      height: 50px;
+    }
+    model-viewer > #ar-failure {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 175px;
+      background: rgba(0,0,0,0.7);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 24px;
+      font-size: 14px;
+      display: none;
+      z-index: 20;
+      white-space: nowrap;
+    }
+    model-viewer[ar-tracking="not-tracking"] > #ar-failure {
+      display: block;
+    }
+
+    /* Thumbnail slider */
+    .slider {
+      position: absolute;
+      bottom: 20px;
+      left: 0;
+      width: 100%;
+      text-align: center;
+      overflow: hidden;
+      pointer-events: none; /* let model-viewer handle touches, but inner slides need pointer-events: auto */
+    }
+    .slides {
+      display: flex;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch;
+      gap: 10px;
+      padding: 8px 16px;
+      pointer-events: auto;
+      justify-content: center;
+    }
+    .slide {
+      scroll-snap-align: start;
+      flex-shrink: 0;
+      width: 85px;
+      height: 85px;
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      background-color: white;
+      border-radius: 12px;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: border 0.2s, transform 0.1s;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .slide.selected {
+      border-color: #4285f4;
+      background-color: #f0f7ff;
+    }
+    .slide:focus-visible {
+      outline: 2px solid #4285f4;
+      outline-offset: 2px;
+    }
+    /* hide scrollbar for cleaner look (optional) */
+    .slides::-webkit-scrollbar {
+      height: 4px;
+    }
+    .slides::-webkit-scrollbar-track {
+      background: #ddd;
+      border-radius: 4px;
+    }
+    .slides::-webkit-scrollbar-thumb {
+      background: #888;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+
+<model-viewer
+  id="model-viewer"
+  src="https://modelviewer.dev/shared-assets/models/Astronaut.glb"
+  poster="https://modelviewer.dev/shared-assets/models/Astronaut.webp"
+  shadow-intensity="1"
+  ar
+  ar-modes="scene-viewer webxr quick-look"
+  camera-controls
+  touch-action="pan-y"
+  alt="3D model carousel with AR"
+>
   <button slot="ar-button" id="ar-button">
     View in your space
   </button>
-
   <div id="ar-prompt">
-    <img src="../../assets/hand.png">
+    <img src="https://modelviewer.dev/shared-assets/icons/hand.png" alt="move phone icon">
   </div>
-
   <button id="ar-failure">
-    AR is not tracking!
+    AR is not tracking
   </button>
 
+  <!-- Thumbnail slider -->
   <div class="slider">
-    <div class="slides">
-      <button class="slide selected" onclick="switchSrc(this, 'Chair')" style="background-image: url('../../assets/ShopifyModels/Chair.webp');">
-
-      </button><button class="slide" onclick="switchSrc(this, 'Mixer')" style="background-image: url('../../assets/ShopifyModels/Mixer.webp');">
-
-      </button><button class="slide" onclick="switchSrc(this, 'GeoPlanter')" style="background-image: url('../../assets/ShopifyModels/GeoPlanter.webp');">
-      
-      </button><button class="slide" onclick="switchSrc(this, 'ToyTrain')" style="background-image: url('../../assets/ShopifyModels/ToyTrain.webp');">
-      
-      </button><button class="slide" onclick="switchSrc(this, 'Canoe')" style="background-image: url('../../assets/ShopifyModels/Canoe.webp');">    
-    </button></div>
+    <div class="slides" id="slide-list">
+      <!-- Each thumbnail gets data-model attribute with the GLB and poster URL -->
+    </div>
   </div>
 </model-viewer>
 
 <script type="module">
-  const modelViewer = document.querySelector("model-viewer");
+  // Define your own models here – replace with your actual ShopifyModels assets
+  const MODELS = [
+    {
+      name: 'Astronaut',
+      glb: 'https://modelviewer.dev/shared-assets/models/Astronaut.glb',
+      poster: 'https://modelviewer.dev/shared-assets/models/Astronaut.webp'
+    },
+    {
+      name: 'RobotExpressive',
+      glb: 'https://modelviewer.dev/shared-assets/models/RobotExpressive.glb',
+      poster: 'https://modelviewer.dev/shared-assets/models/RobotExpressive.webp'
+    },
+    {
+      name: 'Horse',
+      glb: 'https://modelviewer.dev/shared-assets/models/Horse.glb',
+      poster: 'https://modelviewer.dev/shared-assets/models/Horse.webp'
+    },
+    {
+      name: 'Shoe',
+      glb: 'https://modelviewer.dev/shared-assets/models/Shoe.glb',
+      poster: 'https://modelviewer.dev/shared-assets/models/Shoe.webp'
+    },
+    {
+      name: 'Canoe',
+      glb: 'https://threejs.org/examples/models/gltf/Canoe.glb',  // external example
+      poster: 'https://threejs.org/examples/models/gltf/Canoe.png'
+    }
+  ];
 
-  window.switchSrc = (element, name) => {
-    const base = "../../assets/ShopifyModels/" + name;
-    modelViewer.src = base + '.glb';
-    modelViewer.poster = base + '.webp';
-    const slides = document.querySelectorAll(".slide");
-    slides.forEach((element) => {element.classList.remove("selected");});
-    element.classList.add("selected");
-  };
+  const modelViewer = document.getElementById('model-viewer');
+  const slidesContainer = document.getElementById('slide-list');
 
-  document.querySelector(".slider").addEventListener('beforexrselect', (ev) => {
-    // Keep slider interactions from affecting the XR scene.
+  // Dynamically create thumbnails
+  MODELS.forEach((model, index) => {
+    const btn = document.createElement('button');
+    btn.className = 'slide';
+    if (index === 0) btn.classList.add('selected');
+    btn.style.backgroundImage = `url('${model.poster}')`;
+    btn.setAttribute('data-glb', model.glb);
+    btn.setAttribute('data-poster', model.poster);
+    btn.setAttribute('aria-label', `View ${model.name}`);
+    btn.addEventListener('click', () => {
+      // Switch model
+      modelViewer.src = model.glb;
+      modelViewer.poster = model.poster;
+      // Update selected style
+      document.querySelectorAll('.slide').forEach(slide => slide.classList.remove('selected'));
+      btn.classList.add('selected');
+    });
+    slidesContainer.appendChild(btn);
+  });
+
+  // Optional: prevent XR select interference on slider (already handled by beforexrselect)
+  document.querySelector('.slider').addEventListener('beforexrselect', (ev) => {
     ev.preventDefault();
   });
+
+  // Ensure the AR button and failure messages work (model-viewer takes care of attributes)
+  // Additional: log if AR is supported
+  if (modelViewer.canActivateAR) {
+    console.log('AR is supported on this device/browser');
+  } else {
+    console.warn('AR not supported – the button will not start an AR session');
+  }
 </script>
 
-<style>
-  /* This keeps child nodes hidden while the element loads */
-  :not(:defined) > * {
-    display: none;
-  }
-
-  model-viewer {
-    background-color: #eee;
-    overflow-x: hidden;
-  }
-
-  #ar-button {
-    background-image: url(../../assets/ic_view_in_ar_new_googblue_48dp.png);
-    background-repeat: no-repeat;
-    background-size: 20px 20px;
-    background-position: 12px 50%;
-    background-color: #fff;
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    white-space: nowrap;
-    bottom: 132px;
-    padding: 0px 16px 0px 40px;
-    font-family: Roboto Regular, Helvetica Neue, sans-serif;
-    font-size: 14px;
-    color:#4285f4;
-    height: 36px;
-    line-height: 36px;
-    border-radius: 18px;
-    border: 1px solid #DADCE0;
-  }
-
-  #ar-button:active {
-    background-color: #E8EAED;
-  }
-
-  #ar-button:focus {
-    outline: none;
-  }
-
-  #ar-button:focus-visible {
-    outline: 1px solid #4285f4;
-  }
-
-  @keyframes circle {
-    from { transform: translateX(-50%) rotate(0deg) translateX(50px) rotate(0deg); }
-    to   { transform: translateX(-50%) rotate(360deg) translateX(50px) rotate(-360deg); }
-  }
-
-  @keyframes elongate {
-    from { transform: translateX(100px); }
-    to   { transform: translateX(-100px); }
-  }
-
-  model-viewer > #ar-prompt {
-    position: absolute;
-    left: 50%;
-    bottom: 175px;
-    animation: elongate 2s infinite ease-in-out alternate;
-    display: none;
-  }
-
-  model-viewer[ar-status="session-started"] > #ar-prompt {
-    display: block;
-  }
-
-  model-viewer > #ar-prompt > img {
-    animation: circle 4s linear infinite;
-  }
-
-  model-viewer > #ar-failure {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    bottom: 175px;
-    display: none;
-  }
-
-  model-viewer[ar-tracking="not-tracking"] > #ar-failure {
-    display: block;
-  }
-
-  .slider {
-    width: 100%;
-    text-align: center;
-    overflow: hidden;
-    position: absolute;
-    bottom: 16px;
-  }
-
-  .slides {
-    display: flex;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    scroll-behavior: smooth;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .slide {
-    scroll-snap-align: start;
-    flex-shrink: 0;
-    width: 100px;
-    height: 100px;
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: center;
-    background-color: #fff;
-    margin-right: 10px;
-    border-radius: 10px;
-    border: none;
-    display: flex;
-  }
-
-  .slide.selected {
-    border: 2px solid #4285f4;
-  }
-
-  .slide:focus {
-    outline: none;
-  }
-
-  .slide:focus-visible {
-    outline: 1px solid #4285f4;
-  }
-
-</style>
+</body>
+</html>
