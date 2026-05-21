@@ -1,18 +1,22 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 
 <title>Visualizador 3D</title>
 
-<script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js"></script>
+<script type="module"
+src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js">
+</script>
 
 <style>
 
 *{
   box-sizing:border-box;
   -webkit-tap-highlight-color:transparent;
+  user-select:none;
 }
 
 html,body{
@@ -20,7 +24,7 @@ html,body{
   width:100%;
   height:100%;
   overflow:hidden;
-  background:#111;
+  background:#000;
   font-family:system-ui,sans-serif;
 }
 
@@ -36,7 +40,8 @@ MODEL VIEWER
 model-viewer{
   width:100vw;
   height:100vh;
-  background:#161622;
+
+  background:#000;
 
   --progress-bar-color:#4285f4;
   --progress-bar-height:3px;
@@ -50,15 +55,18 @@ BOTÃO AR
 
 #ar-button{
   position:absolute;
+
   left:50%;
   transform:translateX(-50%);
-  bottom:20px;
+
+  bottom:18px;
 
   display:flex;
   align-items:center;
   gap:10px;
 
-  height:46px;
+  height:44px;
+
   padding:0 18px;
 
   border:none;
@@ -67,14 +75,17 @@ BOTÃO AR
   background:rgba(255,255,255,.95);
 
   color:#4285f4;
+
   font-size:14px;
   font-weight:600;
 
-  box-shadow:0 4px 18px rgba(0,0,0,.25);
+  box-shadow:0 4px 16px rgba(0,0,0,.25);
 
   backdrop-filter:blur(10px);
 
   z-index:30;
+
+  cursor:pointer;
 }
 
 #ar-button img{
@@ -101,12 +112,13 @@ PROMPT AR
 
 #ar-prompt{
   position:absolute;
+
   left:50%;
   bottom:120px;
 
-  display:none;
-
   transform:translateX(-50%);
+
+  display:none;
 
   z-index:20;
 }
@@ -118,6 +130,7 @@ model-viewer[ar-status="session-started"] #ar-prompt{
 #ar-prompt img{
   width:56px;
   height:56px;
+
   animation:orbit 3s linear infinite;
 }
 
@@ -131,16 +144,16 @@ ERRO TRACKING
   left:50%;
   transform:translateX(-50%);
 
-  bottom:90px;
+  bottom:86px;
 
   display:none;
 
   padding:10px 16px;
 
-  border-radius:999px;
   border:none;
+  border-radius:999px;
 
-  background:rgba(0,0,0,.8);
+  background:rgba(0,0,0,.82);
 
   color:#ffb066;
 
@@ -164,7 +177,7 @@ SLIDER
   position:absolute;
 
   right:14px;
-  bottom:84px;
+  bottom:78px;
 
   max-width:90vw;
 
@@ -192,7 +205,7 @@ SLIDER
 }
 
 /* =========================
-THUMBS
+THUMBNAILS
 ========================= */
 
 .slide{
@@ -208,10 +221,9 @@ THUMBS
   background-position:center;
   background-color:#222;
 
-  box-shadow:
-    0 4px 12px rgba(0,0,0,.35);
+  border:2px solid rgba(255,255,255,.18);
 
-  border:2px solid rgba(255,255,255,.2);
+  box-shadow:0 4px 12px rgba(0,0,0,.35);
 
   transition:
     transform .15s ease,
@@ -222,7 +234,7 @@ THUMBS
 
 .slide.selected{
   border:3px solid #4285f4;
-  transform:scale(1.05);
+  transform:scale(1.04);
 }
 
 .slide:active{
@@ -230,7 +242,7 @@ THUMBS
 }
 
 /* =========================
-MOBILE
+RESPONSIVO
 ========================= */
 
 @media (max-width:600px){
@@ -241,15 +253,16 @@ MOBILE
   }
 
   .slider{
-    bottom:76px;
+    bottom:72px;
     right:10px;
   }
 
   #ar-button{
     bottom:14px;
+    height:40px;
     font-size:13px;
-    height:42px;
   }
+
 }
 
 </style>
@@ -267,31 +280,43 @@ MOBILE
   ar-modes="webxr scene-viewer quick-look"
 
   camera-controls
-  auto-rotate
+
+  exposure="1"
 
   shadow-intensity="0"
+  shadow-softness="0"
 
-  exposure="0"
+  environment-image="neutral"
 
-  loading="eager"
+  tone-mapping="neutral"
 
-  reveal="auto"
+  interaction-prompt="none"
+
+  disable-pan
 
   alt="Modelo 3D interativo"
 >
+
+  <!-- BOTÃO AR -->
 
   <button slot="ar-button" id="ar-button">
     <img src="https://fonts.gstatic.com/s/i/googlematerialicons/view_in_ar/v13/24px.svg">
     Ver no seu espaço
   </button>
 
+  <!-- PROMPT AR -->
+
   <div id="ar-prompt">
     <img src="https://modelviewer.dev/shared-assets/icons/hand.png">
   </div>
 
+  <!-- ERRO AR -->
+
   <button id="ar-failure">
     AR não detectado
   </button>
+
+  <!-- THUMBNAILS -->
 
   <div class="slider">
     <div class="slides" id="slides"></div>
@@ -300,6 +325,10 @@ MOBILE
 </model-viewer>
 
 <script type="module">
+
+/* =========================
+LISTA DE MODELOS
+========================= */
 
 const MODELS = [
 
@@ -323,6 +352,10 @@ const MODELS = [
 
 ];
 
+/* =========================
+ELEMENTOS
+========================= */
+
 const viewer = document.getElementById('viewer');
 const slides = document.getElementById('slides');
 
@@ -338,7 +371,7 @@ MODELS.forEach((model,index)=>{
 
   btn.className = 'slide';
 
-  if(index===0){
+  if(index === 0){
     btn.classList.add('selected');
   }
 
@@ -354,17 +387,21 @@ MODELS.forEach((model,index)=>{
 
     currentIndex = index;
 
-    /* limpa textura anterior */
+    /* remove poster anterior */
+
     viewer.dismissPoster();
 
     /* troca modelo */
+
     viewer.src = model.glb;
     viewer.poster = model.poster;
 
     /* reseta câmera */
+
     viewer.cameraOrbit = '0deg 75deg auto';
 
-    /* atualiza seleção */
+    /* atualiza thumb */
+
     document.querySelectorAll('.slide')
       .forEach(el=>el.classList.remove('selected'));
 
@@ -377,7 +414,7 @@ MODELS.forEach((model,index)=>{
 });
 
 /* =========================
-XR FIX
+FIX XR
 ========================= */
 
 document.querySelector('.slider')
@@ -386,7 +423,7 @@ document.querySelector('.slider')
 });
 
 /* =========================
-AR SUPPORT CHECK
+VERIFICA AR
 ========================= */
 
 window.addEventListener('load', async()=>{
@@ -408,23 +445,6 @@ window.addEventListener('load', async()=>{
   }
 
 });
-
-/* =========================
-PERFORMANCE MOBILE
-========================= */
-
-/* reduz qualidade em aparelhos fracos */
-
-const isMobile =
-/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-if(isMobile){
-
-  viewer.shadowIntensity = 0.6;
-
-  viewer.exposure = 0.9;
-
-}
 
 </script>
 
