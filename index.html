@@ -9,7 +9,8 @@ content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
 
 <title>Repositório Mineral</title>
 
-<script type="module"
+<script
+type="module"
 src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js">
 </script>
 
@@ -44,6 +45,70 @@ model-viewer{
   width:100vw;
   height:100vh;
   background:#000;
+}
+
+/* =========================
+LOADER
+========================= */
+
+#loading-screen{
+
+  position:absolute;
+
+  inset:0;
+
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+
+  gap:18px;
+
+  background:#000;
+
+  z-index:100;
+
+  transition:opacity .3s ease;
+}
+
+#loading-text{
+
+  color:#ffffff;
+
+  font-size:14px;
+  font-weight:500;
+
+  letter-spacing:.5px;
+}
+
+#progress-container{
+
+  width:220px;
+  height:6px;
+
+  background:#1f1f1f;
+
+  border-radius:999px;
+
+  overflow:hidden;
+}
+
+#progress-bar{
+
+  width:0%;
+
+  height:100%;
+
+  background:#4285f4;
+
+  transition:width .15s linear;
+}
+
+#loading-percent{
+
+  color:#888;
+
+  font-size:12px;
 }
 
 /* =========================
@@ -173,11 +238,37 @@ MOBILE
 
 <body>
 
+<!-- =========================
+TELA DE CARREGAMENTO
+========================= -->
+
+<div id="loading-screen">
+
+  <div id="loading-text">
+    Carregando modelo 3D
+  </div>
+
+  <div id="progress-container">
+
+    <div id="progress-bar"></div>
+
+  </div>
+
+  <div id="loading-percent">
+    0%
+  </div>
+
+</div>
+
+<!-- =========================
+MODEL VIEWER
+========================= -->
+
 <model-viewer
 
   id="viewer"
 
-  src="./models/CalcitaPancake.glb"
+  src="./models/CalcitaPancakeBase.glb"
 
   poster="./models/Calcita.png"
 
@@ -236,7 +327,7 @@ const MODELS = [
 
     name:'Calcita',
 
-    glb:'./models/CalcitaPancake.glb',
+    glb:'./models/CalcitaPancakeBase.glb',
 
     poster:'./models/Calcita.png'
 
@@ -274,7 +365,69 @@ document.getElementById('viewer');
 const slides =
 document.getElementById('slides');
 
+const loadingScreen =
+document.getElementById('loading-screen');
+
+const progressBar =
+document.getElementById('progress-bar');
+
+const progressPercent =
+document.getElementById('loading-percent');
+
 let currentIndex = 0;
+
+/* =========================
+LOADING BAR
+========================= */
+
+function updateProgress(progress){
+
+  const value =
+  Math.round(progress * 100);
+
+  progressBar.style.width =
+  `${value}%`;
+
+  progressPercent.textContent =
+  `${value}%`;
+
+}
+
+/* progresso do carregamento */
+
+viewer.addEventListener(
+  'progress',
+  (event)=>{
+
+    updateProgress(event.detail.totalProgress);
+
+  }
+);
+
+/* terminou carregamento */
+
+viewer.addEventListener(
+  'load',
+  ()=>{
+
+    progressBar.style.width = '100%';
+
+    progressPercent.textContent = '100%';
+
+    setTimeout(()=>{
+
+      loadingScreen.style.opacity = '0';
+
+      setTimeout(()=>{
+
+        loadingScreen.style.display='none';
+
+      },300);
+
+    },250);
+
+  }
+);
 
 /* =========================
 CRIAR THUMBNAILS
@@ -308,6 +461,16 @@ MODELS.forEach((model,index)=>{
     if(currentIndex === index) return;
 
     currentIndex = index;
+
+    /* mostra loader novamente */
+
+    loadingScreen.style.display='flex';
+
+    loadingScreen.style.opacity='1';
+
+    progressBar.style.width='0%';
+
+    progressPercent.textContent='0%';
 
     /* remove poster anterior */
 
