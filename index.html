@@ -2,71 +2,110 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Visualizador 3D e Índice de Modelos</title>
-    <!-- Carregamento do Tailwind CSS para estilo moderno -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>Ateliê 3D | Visualizador e Catálogo de Modelos</title>
+    <!-- TailwindCSS + Fontes modernas -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Configuração do Tailwind para usar a fonte Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
             theme: {
                 extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    },
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+                    animation: { 'pulse-slow': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }
                 }
             }
         }
     </script>
     <style>
-        /* Estilo base para garantir que o canvas ocupe todo o espaço do visualizador */
-        body, html, #viewer-container {
+        /* Estilos complementares para line-clamp e transições suaves */
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        /* remover outline padrão de botões no foco, mas manter acessibilidade */
+        button:focus-visible {
+            outline: 2px solid #6366f1;
+            outline-offset: 2px;
+        }
+        /* transição fluida para cartões e sobreposições */
+        .card-hover-effect {
+            transition: transform 0.25s ease, box-shadow 0.3s ease;
+        }
+        /* barra de progresso personalizada (carregamento 3D) */
+        .loading-progress {
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(8px);
+        }
+        /* esconder scrollbar desnecessária no canvas container */
+        #viewer-container canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        body, html {
             margin: 0;
             padding: 0;
             width: 100%;
             height: 100%;
-            overflow: hidden;
-            font-family: 'Inter', sans-serif;
-        }
-        canvas {
-            display: block;
+            overflow-x: hidden;
         }
     </style>
 </head>
-<!-- MUDANÇA: Fundo do corpo alterado para cinza escuro (quase preto) -->
-<body class="bg-gray-900">
+<body class="bg-gradient-to-br from-gray-900 to-gray-800 antialiased">
 
-    <!-- ÍNDICE DE MODELOS -->
-    <div id="model-list" class="min-h-screen p-8 md:p-12 lg:p-16">
-        <!-- MUDANÇA: Cor do título alterada para branco para alto contraste -->
-        <h1 class="text-4xl font-extrabold text-white mb-8 text-center">
-            Catálogo de Modelos 3D
-        </h1>
-        
-        <!-- O grid será populado via JavaScript -->
-        <div id="model-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-            <!-- Conteúdo dinâmico aqui -->
+    <!-- ========== CATÁLOGO / GALERIA ========== -->
+    <div id="catalog-view" class="min-h-screen w-full px-4 py-8 md:py-12 lg:py-16 transition-all duration-300">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-10 md:mb-14">
+                <h1 class="text-4xl md:text-5xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-blue-300 via-indigo-200 to-purple-200 tracking-tight">
+                    🧊 Galeria Imersiva
+                </h1>
+                <p class="text-indigo-100/70 mt-3 text-lg max-w-2xl mx-auto">
+                    Selecione qualquer modelo para explorar em 3D com controles orbitais e alta fidelidade visual.
+                </p>
+            </div>
+            <div id="model-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-7 auto-rows-fr">
+                <!-- Os cartões serão injetados via JS -->
+            </div>
         </div>
     </div>
 
-    <!-- VISUALIZADOR 3D -->
-    <div id="viewer-container" class="hidden relative w-full h-screen">
-        <!-- O canvas será anexado aqui -->
-        
-        <!-- Botão Voltar -->
-        <button id="back-button" class="absolute top-4 left-4 z-10 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition duration-150 ease-in-out flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0.25 0.25 23.5 23.5" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-            </svg>
-            Voltar ao Catálogo
-        </button>
-        
-        <!-- Controles de Status (Carregamento e Erro) -->
-        <div id="loading" class="absolute top-16 left-4 z-10 bg-white p-3 rounded-lg shadow-md font-medium text-gray-700 transition duration-300">
-            Carregando...
+    <!-- ========== VISUALIZADOR 3D ========== -->
+    <div id="viewer-container" class="hidden fixed inset-0 w-full h-full z-50 bg-black/95 backdrop-blur-sm transition-all">
+        <!-- Barra superior com controles -->
+        <div class="absolute top-0 left-0 right-0 flex flex-wrap items-center justify-between gap-3 p-4 z-20 bg-gradient-to-b from-gray-900/80 to-transparent pointer-events-none">
+            <div class="pointer-events-auto">
+                <button id="back-button" class="bg-gray-800/90 hover:bg-indigo-600 text-white font-semibold py-2.5 px-5 rounded-xl shadow-lg backdrop-blur-md transition-all duration-200 flex items-center gap-2 border border-white/10">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+                    </svg>
+                    <span>Catálogo</span>
+                </button>
+            </div>
+            <div class="pointer-events-auto flex gap-3">
+                <button id="reset-camera-btn" class="bg-gray-800/80 hover:bg-indigo-500 text-white text-sm font-medium py-2 px-4 rounded-xl backdrop-blur-md transition shadow-md border border-white/20">
+                    🎥 Centralizar câmera
+                </button>
+            </div>
         </div>
-        <div id="error" class="absolute top-16 left-4 z-10 bg-red-100 border border-red-400 text-red-700 p-3 rounded-lg shadow-md font-medium hidden">
-            Ocorreu um erro no carregamento.
+
+        <!-- Status messages: loading & error -->
+        <div id="status-messages" class="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 pointer-events-none flex flex-col items-center gap-2 w-full max-w-md px-4">
+            <div id="loading-status" class="hidden loading-progress text-white px-5 py-2 rounded-full font-mono text-sm backdrop-blur-md bg-black/60 border border-indigo-400/40 shadow-lg">
+                <span id="loading-text">⏳ Carregando modelo...</span>
+            </div>
+            <div id="error-status" class="hidden bg-red-900/90 backdrop-blur-md border border-red-400 text-red-100 px-5 py-2 rounded-xl font-medium text-sm shadow-xl pointer-events-auto">
+                ⚠️ <span id="error-message">Erro ao carregar</span>
+            </div>
+        </div>
+
+        <!-- pequena legenda de ajuda -->
+        <div class="absolute bottom-4 right-4 text-white/40 text-xs bg-black/30 rounded-full px-3 py-1 backdrop-blur-sm pointer-events-none z-20">
+            🖱️ Arrastar: orbitar | Clique + arrastar: girar
         </div>
     </div>
 
@@ -75,283 +114,387 @@
         import { OrbitControls } from 'https://cdn.skypack.dev/three@0.136.0/examples/jsm/controls/OrbitControls.js';
         import { GLTFLoader } from 'https://cdn.skypack.dev/three@0.136.0/examples/jsm/loaders/GLTFLoader.js';
         import { DRACOLoader } from 'https://cdn.skypack.dev/three@0.136.0/examples/jsm/loaders/DRACOLoader.js';
-        
-        // ===========================================
-        // 1. DADOS DOS MODELOS (AGORA COM CAMINHOS RELATIVOS)
-        // Você deve garantir que esses arquivos existam na estrutura de pastas correta
-        // ===========================================
-        const MODELS_DATA = [
+
+        // --------------------------------------------------------------
+        // 1. BASE DE DADOS DOS MODELOS (caminhos relativos + fallbacks)
+        // --------------------------------------------------------------
+        const MODELS_CATALOG = [
             {
-                id: 'model-a',
-                name: 'Calcita Original',
-                gltfUrl: './CalcitaPancakeBase.glb', // Caminho relativo para o seu modelo original
-                thumbnailUrl: './images/calcita_original.png', // Caminho relativo para a miniatura
-                description: 'Seu modelo original Calcita, otimizado para visualização com alta exposição.',
+                id: 'calcita_original',
+                name: '✨ Calcita Original',
+                gltfUrl: './CalcitaPancakeBase.glb',
+                thumbnailUrl: './images/calcita_original.png',
+                description: 'Geometria orgânica com alta exposição e detalhes minerais.'
             },
             {
-                id: 'model-b',
-                name: 'APF1',
-                gltfUrl: './models/APF1-v1.glb', // Exemplo de modelo em uma subpasta 'models'
+                id: 'apf1_robot',
+                name: '🤖 APF1 - Robô Avançado',
+                gltfUrl: './models/APF1-v1.glb',
                 thumbnailUrl: './images/APF1-v1.png',
-                description: 'Um robô amigável, pronto para ser inspecionado.',
+                description: 'Design mecanizado com acabamento metálico e articulações.'
             },
             {
-                id: 'model-c',
-                name: 'Capacete de Voo',
+                id: 'flight_helmet',
+                name: '⛑️ Capacete de Voo',
                 gltfUrl: './models/FlightHelmet.gltf',
                 thumbnailUrl: './images/capacete_voo.png',
-                description: 'Um modelo complexo PBR para testar materiais.',
+                description: 'Modelo PBR realista, texturas de alta resolução.'
             },
             {
-                id: 'model-d',
-                name: 'Sala Viking',
+                id: 'viking_room',
+                name: '🏛️ Sala Viking',
                 gltfUrl: './models/VikingRoom.gltf',
                 thumbnailUrl: './images/sala_viking.png',
-                description: 'Cena completa para testar iluminação ambiente.',
-            },
+                description: 'Ambiente completo com iluminação indireta e móveis rústicos.'
+            }
         ];
 
-        // ===========================================
-        // 2. VARIÁVEIS DE DOM E ESTADO
-        // ===========================================
-        const modelListElement = document.getElementById('model-list');
-        const modelGridElement = document.getElementById('model-grid');
+        // Elementos DOM
+        const catalogView = document.getElementById('catalog-view');
         const viewerContainer = document.getElementById('viewer-container');
-        const loadingElement = document.getElementById('loading');
-        const errorElement = document.getElementById('error');
-        const backButton = document.getElementById('back-button');
+        const modelGrid = document.getElementById('model-grid');
+        const backBtn = document.getElementById('back-button');
+        const resetCamBtn = document.getElementById('reset-camera-btn');
+        const loadingStatusDiv = document.getElementById('loading-status');
+        const loadingTextSpan = document.getElementById('loading-text');
+        const errorStatusDiv = document.getElementById('error-status');
+        const errorMessageSpan = document.getElementById('error-message');
 
-        let scene, camera, renderer, controls, currentModel, ambientLight, directionalLight, fillLight;
+        // Estado THREE
+        let scene, camera, renderer, orbitControls;
+        let activeModelObject = null;      // grupo principal do modelo carregado
+        let currentLoadRequestId = 0;      // para evitar race conditions
         let animationFrameId = null;
+        
+        // luzes globais (reutilizáveis)
+        let ambientLight, mainLight, fillLight, backRimLight;
 
-        // ===========================================
-        // 3. FUNÇÕES DE GERENCIAMENTO DE VIEW
-        // ===========================================
+        // flags de inicialização
+        let isThreeInitialized = false;
 
-        /**
-         * Alterna para a visualização do catálogo (Índice).
-         */
-        function showIndex() {
-            // Esconde o visualizador
+        // --------------------------------------------------------------
+        // 2. FUNÇÕES DE UI / Navegação
+        // --------------------------------------------------------------
+        function showCatalog() {
+            // Oculta visualizador e exibe catálogo
             viewerContainer.classList.add('hidden');
-            // Mostra o catálogo
-            modelListElement.classList.remove('hidden');
-
-            // Limpa o ambiente Three.js se estiver ativo
+            catalogView.classList.remove('hidden');
+            
+            // Para animação e limpa recursos Three.js corretamente
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+            
             if (renderer) {
-                // Para o loop de animação
-                if (animationFrameId) {
-                    cancelAnimationFrame(animationFrameId);
-                    animationFrameId = null;
+                // remove canvas do DOM para liberar memória
+                if (renderer.domElement && renderer.domElement.parentNode) {
+                    renderer.domElement.remove();
                 }
-                // Remove o canvas para limpar a memória
-                const canvas = renderer.domElement;
-                if (canvas) {
-                    canvas.remove();
-                }
-                // Limpa a cena e o renderizador (opcional, mas boa prática)
                 renderer.dispose();
-                scene.clear();
                 renderer = null;
-                controls = null;
-                // O garbage collector fará o resto
             }
-        }
-
-        /**
-         * Alterna para a visualização 3D e inicia o carregamento do modelo.
-         * @param {string} modelUrl - URL do arquivo GLTF/GLB.
-         */
-        function showViewer(modelUrl) {
-            // Esconde o catálogo
-            modelListElement.classList.add('hidden');
-            // Mostra o visualizador
-            viewerContainer.classList.remove('hidden');
-
-            // Limpa mensagens de status
-            loadingElement.textContent = 'Carregando...';
-            loadingElement.classList.remove('hidden');
-            errorElement.classList.add('hidden');
             
-            // Inicializa e carrega o modelo
-            initThreeJs();
-            loadModel(modelUrl);
-        }
-
-        // ===========================================
-        // 4. FUNÇÕES DE RENDERIZAÇÃO DO ÍNDICE
-        // ===========================================
-
-        /**
-         * Cria um cartão de miniatura para o modelo.
-         * @param {object} model - Objeto de dados do modelo.
-         */
-        function createModelCard(model) {
-            const card = document.createElement('div');
-            // Cartão com fundo branco mantido, como solicitado
-            card.className = 'bg-white rounded-xl shadow-xl overflow-hidden cursor-pointer hover:shadow-2xl hover:scale-[1.02] transition duration-300 ease-in-out';
-            card.onclick = () => showViewer(model.gltfUrl);
-
-            card.innerHTML = `
-                <!-- Miniatura -->
-                <div class="h-48 overflow-hidden bg-gray-200">
-                    <!-- O src agora usa um caminho relativo -->
-                    <img src="${model.thumbnailUrl}" alt="Miniatura de ${model.name}" onerror="this.onerror=null;this.src='https://placehold.co/300x200/94A3B8/ffffff?text=Thumbnail+Indispon%C3%ADvel';" 
-                         class="w-full h-full object-cover transition-opacity duration-500 hover:opacity-90">
-                </div>
-                <!-- Detalhes -->
-                <div class="p-5">
-                    <h3 class="text-xl font-bold text-gray-800 truncate">${model.name}</h3>
-                    <p class="text-sm text-gray-500 mt-1 line-clamp-2">${model.description}</p>
-                    <button class="mt-4 w-full bg-indigo-500 text-white py-2 rounded-lg font-medium hover:bg-indigo-600 transition">Visualizar 3D</button>
-                </div>
-            `;
-            return card;
-        }
-
-        /**
-         * Popula o grid do catálogo com os cartões de modelo.
-         */
-        function renderIndex() {
-            modelGridElement.innerHTML = '';
-            MODELS_DATA.forEach(model => {
-                modelGridElement.appendChild(createModelCard(model));
-            });
-        }
-
-        // ===========================================
-        // 5. SETUP DO THREE.JS (VISUALIZADOR)
-        // ===========================================
-
-        /**
-         * Configura a cena, câmera, renderizador e controles.
-         */
-        function initThreeJs() {
-            // Se já estiver inicializado, apenas limpa a cena
-            if (renderer) {
+            // limpar referências pesadas
+            if (scene) {
                 scene.clear();
-                return;
+                scene = null;
             }
+            if (orbitControls) {
+                orbitControls.dispose();
+                orbitControls = null;
+            }
+            camera = null;
+            isThreeInitialized = false;
+            activeModelObject = null;
+            
+            // esconde mensagens de erro
+            errorStatusDiv.classList.add('hidden');
+            loadingStatusDiv.classList.add('hidden');
+        }
 
-            // 1. Configuração básica
+        function showViewer(modelUrl) {
+            // Oculta catálogo, mostra container 3D
+            catalogView.classList.add('hidden');
+            viewerContainer.classList.remove('hidden');
+            
+            // reset de status
+            errorStatusDiv.classList.add('hidden');
+            loadingStatusDiv.classList.remove('hidden');
+            loadingTextSpan.innerHTML = '🔄 Inicializando ambiente 3D...';
+            
+            // Incrementa requestId para evitar sobreposição de loads antigos
+            const requestId = ++currentLoadRequestId;
+            
+            // Inicializa o motor Three (caso não exista)
+            initThreeEnvironment();
+            
+            // Carrega modelo com validação de race
+            loadModelWithRetry(modelUrl, requestId);
+        }
+
+        // --------------------------------------------------------------
+        // 3. SETUP THREE.JS (com correções para r136)
+        // --------------------------------------------------------------
+        function initThreeEnvironment() {
+            if (isThreeInitialized && renderer && scene) return;
+            
+            // Cena principal com fundo cinza suave (elegante para destacar modelos)
             scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 1.0, 2.5); // Posição de visualização padrão
-
-            // 2. Configuração do Renderizador
-            renderer = new THREE.WebGLRenderer({ antialias: true });
+            scene.background = new THREE.Color(0x111217); // tom dark sofisticado
+            scene.environment = null; // sem env map externo para manter performance
+            
+            // Câmera perspectiva
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(1.2, 1.4, 2.8);
+            
+            // Renderizador com correções: outputColorSpace, tone mapping
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
             renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.outputEncoding = THREE.sRGBEncoding;
-            renderer.physicallyCorrectLights = true;
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setClearColor(0x111217, 1.0);
+            // CORREÇÃO CRÍTICA: substituir outputEncoding obsoleto
+            renderer.outputColorSpace = THREE.SRGBColorSpace;
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
-            renderer.toneMappingExposure = 1.8; // Exposição alta
-            renderer.shadowMap.enabled = false;
+            renderer.toneMappingExposure = 1.65; // exposição agradável para destacar detalhes
+            renderer.shadowMap.enabled = false;   // performance mantida, sem sombras para maior suavidade
             
-            // Adiciona o canvas ao container
+            // Adiciona canvas ao container
             viewerContainer.appendChild(renderer.domElement);
-
-            // 3. Fundo e Controles
-            scene.background = new THREE.Color(0xeeeeee); // Fundo cinza claro para o modelo 3D
             
-            controls = new OrbitControls(camera, renderer.domElement);
-            controls.enableDamping = true;
-            controls.dampingFactor = 0.05;
-
-            // 4. Iluminação (Otimizada para PBR e clareza)
-            ambientLight = new THREE.AmbientLight(0xffffff, 1.0); 
+            // Orbit Controls com suavidade
+            orbitControls = new OrbitControls(camera, renderer.domElement);
+            orbitControls.enableDamping = true;
+            orbitControls.dampingFactor = 0.06;
+            orbitControls.rotateSpeed = 1.2;
+            orbitControls.zoomSpeed = 1.2;
+            orbitControls.panSpeed = 0.8;
+            orbitControls.enableZoom = true;
+            orbitControls.enablePan = true;
+            orbitControls.target.set(0, 0, 0);
+            
+            // ----- SISTEMA DE LUZES PROFISSIONAL (modelos PBR) -----
+            // Luz ambiente neutra e intensa
+            ambientLight = new THREE.AmbientLight(0xffffff, 0.98);
             scene.add(ambientLight);
-
-            directionalLight = new THREE.DirectionalLight(0xffffff, 3.0);
-            directionalLight.position.set(3, 5, 2);
-            scene.add(directionalLight);
-
-            fillLight = new THREE.DirectionalLight(0xffffff, 1.5);
-            fillLight.position.set(-3, 2, -2);
+            
+            // Luz direcional principal (quente, vinda de cima-esquerda)
+            mainLight = new THREE.DirectionalLight(0xfff5e0, 2.4);
+            mainLight.position.set(3.5, 5.2, 2.8);
+            scene.add(mainLight);
+            
+            // Luz de preenchimento lateral fria
+            fillLight = new THREE.DirectionalLight(0xbbddff, 1.2);
+            fillLight.position.set(-2.5, 1.8, -2.2);
             scene.add(fillLight);
             
+            // Luz de rebote traseira (rim light) para destacar bordas
+            backRimLight = new THREE.DirectionalLight(0xffaa88, 1.0);
+            backRimLight.position.set(0, 1.5, -3.2);
+            scene.add(backRimLight);
+            
+            // pequeno ponto de luz auxiliar suave
+            const softFill = new THREE.PointLight(0x6688aa, 0.5);
+            softFill.position.set(1, 1.2, 1.5);
+            scene.add(softFill);
+            
+            // (Opcional) grade auxiliar muito sutil para referência espacial - sem distrair
+            const gridHelper = new THREE.GridHelper(5, 20, 0x8899aa, 0x445566);
+            gridHelper.position.y = -0.9;
+            gridHelper.material.transparent = true;
+            gridHelper.material.opacity = 0.2;
+            scene.add(gridHelper);
+            
+            // eixo invisivel apenas para referencia (não adicionar poluição visual)
+            isThreeInitialized = true;
+            
             // Inicia o loop de animação
+            startAnimationLoop();
+        }
+        
+        function startAnimationLoop() {
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            
+            function animate() {
+                animationFrameId = requestAnimationFrame(animate);
+                if (orbitControls) orbitControls.update();
+                if (renderer && scene && camera) {
+                    renderer.render(scene, camera);
+                }
+            }
             animate();
         }
-
-        /**
-         * Carrega o modelo 3D GLTF/GLB na cena.
-         * @param {string} modelUrl - URL do arquivo GLTF/GLB.
-         */
-        function loadModel(modelUrl) {
-            // Remove o modelo anterior, se houver
-            if (currentModel) {
-                scene.remove(currentModel);
-                currentModel = null;
+        
+        // --------------------------------------------------------------
+        // 4. CARREGAMENTO DO MODELO COM DRACO + CENTRALIZAÇÃO AUTOMÁTICA
+        // --------------------------------------------------------------
+        function loadModelWithRetry(modelUrl, requestId) {
+            // Remove modelo anterior, se existir
+            if (activeModelObject) {
+                scene.remove(activeModelObject);
+                activeModelObject = null;
             }
-
-            // Configuração dos loaders
+            
+            // Mostra loading progressivo
+            loadingTextSpan.innerHTML = '📦 Carregando geometria 3D...';
+            
+            // Configurar DracoLoader (compatível com glb comprimido)
             const dracoLoader = new DRACOLoader();
-            // O caminho do decoder DRACO continua como URL externa
             dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
             
             const loader = new GLTFLoader();
             loader.setDRACOLoader(dracoLoader);
             
-            loadingElement.classList.remove('hidden');
-
-            loader.load(
-                modelUrl, // O loader agora usa o caminho relativo
+            loader.load(modelUrl, 
                 (gltf) => {
-                    // Centraliza o modelo e o ajusta ao tamanho da cena (opcional, mas recomendado)
-                    const box = new THREE.Box3().setFromObject(gltf.scene);
-                    const center = box.getCenter(new THREE.Vector3());
-                    gltf.scene.position.sub(center); // Move o modelo para o centro
-
-                    scene.add(gltf.scene);
-                    currentModel = gltf.scene;
+                    // Verifica se este request ainda é o último solicitado
+                    if (requestId !== currentLoadRequestId) {
+                        console.warn("Load ignorado: modelo desatualizado");
+                        return;
+                    }
                     
-                    // Ajuste de Materiais (Mesma lógica do original)
-                    gltf.scene.traverse((child) => {
+                    const modelGroup = gltf.scene;
+                    
+                    // Ajuste de materiais para maior realce e estabilidade PBR
+                    modelGroup.traverse((child) => {
                         if (child.isMesh) {
-                            child.material.envMapIntensity = 0.3;
-                            child.material.metalness = 0.1;
-                            child.material.roughness = 0.7;
-                            child.material.needsUpdate = true;
-                            
-                            // Garante que materiais não-Standard sejam convertidos (se necessário)
-                            if (!child.material.isMeshStandardMaterial) {
-                                child.material = new THREE.MeshStandardMaterial({
-                                    color: child.material.color,
-                                    map: child.material.map,
-                                    metalness: 0.1,
-                                    roughness: 0.7
+                            // melhora a resposta visual dos materiais
+                            if (child.material) {
+                                // tratar array de materiais
+                                const materials = Array.isArray(child.material) ? child.material : [child.material];
+                                materials.forEach(mat => {
+                                    if (mat) {
+                                        mat.metalness = Math.min(mat.metalness ?? 0.2, 0.85);
+                                        mat.roughness = Math.max(mat.roughness ?? 0.4, 0.2);
+                                        mat.envMapIntensity = 0.45;
+                                        if (mat.map) mat.map.anisotropy = 16;
+                                        mat.needsUpdate = true;
+                                    }
                                 });
                             }
                         }
                     });
-
-                    loadingElement.classList.add('hidden');
+                    
+                    // Centralizar modelo: calcular bounding box e mover para origem
+                    const bbox = new THREE.Box3().setFromObject(modelGroup);
+                    const center = bbox.getCenter(new THREE.Vector3());
+                    const size = bbox.getSize(new THREE.Vector3());
+                    const maxDim = Math.max(size.x, size.y, size.z);
+                    
+                    // reposiciona modelo para que o centro geométrico fique em (0,0,0)
+                    modelGroup.position.sub(center);
+                    
+                    // Adiciona à cena
+                    scene.add(modelGroup);
+                    activeModelObject = modelGroup;
+                    
+                    // Ajuste inteligente da câmera baseado no tamanho do modelo
+                    const distance = Math.max(maxDim * 1.3, 1.2);
+                    // Define nova posição da câmera de forma elegante
+                    const direction = new THREE.Vector3(1, 0.8, 1.2).normalize();
+                    camera.position.set(direction.x * distance, direction.y * distance * 0.9, direction.z * distance);
+                    orbitControls.target.set(0, 0, 0);
+                    orbitControls.update();
+                    
+                    // Feedback de sucesso
+                    loadingStatusDiv.classList.add('hidden');
+                    errorStatusDiv.classList.add('hidden');
+                    
+                    // pequeno efeito visual de transição (apenas estético)
+                    setTimeout(() => {
+                        if (renderer) renderer.setClearColor(0x111217);
+                    }, 50);
                 },
                 (xhr) => {
-                    // Exibe o progresso de carregamento
-                    const progress = (xhr.loaded / xhr.total * 100).toFixed(2);
-                    loadingElement.textContent = `Carregando: ${progress}%`;
+                    if (requestId !== currentLoadRequestId) return;
+                    const percent = Math.floor((xhr.loaded / xhr.total) * 100);
+                    loadingTextSpan.innerHTML = `⏳ Carregando: ${percent}%`;
                 },
                 (error) => {
-                    // Lidar com erro
-                    console.error('Erro ao carregar o modelo:', error);
-                    errorElement.textContent = `Erro ao carregar o modelo: ${error.message}`;
-                    errorElement.classList.remove('hidden');
-                    loadingElement.classList.add('hidden');
+                    if (requestId !== currentLoadRequestId) return;
+                    console.error('Erro no carregamento do modelo:', error);
+                    let friendlyMsg = "Falha ao carregar o modelo. Verifique se o arquivo existe ou tente outro modelo.";
+                    if (error.message) friendlyMsg = error.message.length > 80 ? error.message.slice(0,80)+'...' : error.message;
+                    errorMessageSpan.innerText = friendlyMsg;
+                    errorStatusDiv.classList.remove('hidden');
+                    loadingStatusDiv.classList.add('hidden');
+                    
+                    // Insere um objeto placeholder visual apenas para não ficar tela vazia
+                    if (activeModelObject) scene.remove(activeModelObject);
+                    const placeholderGroup = new THREE.Group();
+                    const geometry = new THREE.SphereGeometry(0.45, 32, 32);
+                    const material = new THREE.MeshStandardMaterial({ color: 0xef4444, emissive: 0x330000, roughness: 0.3, metalness: 0.1 });
+                    const errorSphere = new THREE.Mesh(geometry, material);
+                    placeholderGroup.add(errorSphere);
+                    const wireframeGeo = new THREE.BoxGeometry(1.1, 1.1, 1.1);
+                    const wireframeMat = new THREE.MeshBasicMaterial({ color: 0xff8888, wireframe: true, transparent: true });
+                    const wireBox = new THREE.Mesh(wireframeGeo, wireframeMat);
+                    placeholderGroup.add(wireBox);
+                    scene.add(placeholderGroup);
+                    activeModelObject = placeholderGroup;
+                    orbitControls.target.set(0,0,0);
+                    orbitControls.update();
                 }
             );
         }
-
-        // ===========================================
-        // 6. LOOP DE ANIMAÇÃO E RESPONSIVIDADE
-        // ===========================================
-
-        function animate() {
-            animationFrameId = requestAnimationFrame(animate);
-            if (controls) controls.update();
-            if (renderer && scene && camera) renderer.render(scene, camera);
+        
+        // Ajuste de câmera para visualização ideal (reset)
+        function resetCameraToModel() {
+            if (!activeModelObject) {
+                // fallback genérico
+                camera.position.set(1.5, 1.2, 2.8);
+                orbitControls.target.set(0, 0, 0);
+                orbitControls.update();
+                return;
+            }
+            // recalcular bounding box do modelo atual
+            const bbox = new THREE.Box3().setFromObject(activeModelObject);
+            const size = bbox.getSize(new THREE.Vector3());
+            const maxDim = Math.max(size.x, size.y, size.z);
+            const distance = Math.max(maxDim * 1.2, 1.4);
+            const direction = new THREE.Vector3(0.8, 0.6, 1.2).normalize();
+            camera.position.set(direction.x * distance, direction.y * distance * 0.9, direction.z * distance);
+            orbitControls.target.set(0, 0, 0);
+            orbitControls.update();
         }
-
+        
+        // --------------------------------------------------------------
+        // 5. GERADOR DE CARDS (thumbnails com fallback elegante)
+        // --------------------------------------------------------------
+        function generateModelCards() {
+            modelGrid.innerHTML = '';
+            MODELS_CATALOG.forEach(model => {
+                const card = document.createElement('div');
+                card.className = 'group bg-white/10 backdrop-blur-md rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] cursor-pointer border border-white/20 hover:border-indigo-400/60';
+                card.onclick = () => showViewer(model.gltfUrl);
+                
+                // miniatura com fallback robusto
+                const imgFallback = `https://placehold.co/400x300/2d2a4a/bbbbff?text=${encodeURIComponent(model.name)}+3D`;
+                card.innerHTML = `
+                    <div class="relative h-52 overflow-hidden bg-gradient-to-br from-gray-800 to-gray-900">
+                        <img src="${model.thumbnailUrl}" alt="${model.name}" 
+                             class="w-full h-full object-cover transition duration-500 group-hover:scale-105"
+                             onerror="this.onerror=null; this.src='${imgFallback}'; this.classList.add('opacity-80');">
+                        <div class="absolute inset-0 bg-black/20 group-hover:bg-transparent transition"></div>
+                    </div>
+                    <div class="p-5">
+                        <h3 class="text-xl font-bold text-white tracking-tight">${model.name}</h3>
+                        <p class="text-indigo-100/70 text-sm mt-2 line-clamp-2">${model.description}</p>
+                        <div class="mt-4 flex justify-between items-center">
+                            <span class="text-indigo-300 text-xs font-mono">🔍 GLTF/GLB</span>
+                            <button class="bg-indigo-500/90 hover:bg-indigo-600 text-white text-sm font-medium py-2 px-4 rounded-xl transition shadow-md backdrop-blur-sm">
+                                Visualizar →
+                            </button>
+                        </div>
+                    </div>
+                `;
+                modelGrid.appendChild(card);
+            });
+        }
+        
+        // --------------------------------------------------------------
+        // 6. EVENTOS GLOBAIS & RESPONSIVIDADE
+        // --------------------------------------------------------------
         window.addEventListener('resize', () => {
             if (camera && renderer) {
                 camera.aspect = window.innerWidth / window.innerHeight;
@@ -359,17 +502,48 @@
                 renderer.setSize(window.innerWidth, window.innerHeight);
             }
         });
-
-        // ===========================================
-        // 7. INICIALIZAÇÃO
-        // ===========================================
-
-        // Botão de retorno
-        backButton.addEventListener('click', showIndex);
         
-        // Renderiza o catálogo ao iniciar a página
-        renderIndex();
+        // Botão Voltar ao catálogo (completo)
+        backBtn.addEventListener('click', () => {
+            showCatalog();
+        });
         
+        // Reset de câmera dentro do visualizador
+        resetCamBtn.addEventListener('click', () => {
+            if (isThreeInitialized && activeModelObject) {
+                resetCameraToModel();
+                // também exibir pequeno feedback momentâneo
+                const tempMsg = document.createElement('div');
+                tempMsg.innerText = '✓ Câmera reajustada';
+                tempMsg.className = 'fixed bottom-20 left-1/2 -translate-x-1/2 bg-black/70 text-white px-4 py-1.5 rounded-full text-sm z-30 pointer-events-none backdrop-blur-sm';
+                document.body.appendChild(tempMsg);
+                setTimeout(() => tempMsg.remove(), 1200);
+            } else if (camera && orbitControls) {
+                camera.position.set(1.2, 1.2, 2.5);
+                orbitControls.target.set(0,0,0);
+                orbitControls.update();
+            }
+        });
+        
+        // --------------------------------------------------------------
+        // 7. INICIALIZAÇÃO DO CATÁLOGO
+        // --------------------------------------------------------------
+        generateModelCards();
+        
+        // Pré-carregamento (caso o primeiro acesso seja suave)
+        console.log('📌 Aplicação 3D catálogo pronta. Clique nos cards para explorar modelos.');
+        
+        // tratamento para evitar scroll duplicado em mobile
+        viewerContainer.addEventListener('touchmove', (e) => {
+            if (viewerContainer.classList.contains('hidden')) return;
+            e.stopPropagation();
+        }, { passive: false });
+        
+        // Ao fechar o visualizador, garantir que o Three pare de consumir GPU desnecessariamente
+        window.addEventListener('beforeunload', () => {
+            if (renderer) renderer.dispose();
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+        });
     </script>
 </body>
 </html>
