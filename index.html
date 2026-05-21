@@ -119,7 +119,7 @@
 </head>
 <body>
 
-  <!-- O primeiro modelo definido aqui deve ser o padrão inicial -->
+  <!-- O modelo inicial padrão agora está alinhado com o primeiro botão do carrossel -->
   <model-viewer 
     src="./assets/models/CalcitaPancakeBase.glb" 
     poster="./assets/models/Calcita.png" 
@@ -140,9 +140,11 @@
 
     <div class="slider">
       <div class="slides">
-        <button class="slide selected" data-model="agata" aria-label="Ver Ágata em 3D" style="background-image: url('./assets/models/Calcita.png');"></button>
-        <button class="slide" data-model="quartzo" aria-label="Ver Quartzo em 3D" style="background-image: url('./assets/models/quartzo.webp');"></button>
-        <button class="slide" data-model="pirita" aria-label="Ver Pirita em 3D" style="background-image: url('./assets/models/pirita.webp');"></button>
+        <!-- data-model deve corresponder exatamente ao nome do arquivo .glb (sem a extensão) -->
+        <!-- data-poster guarda o nome completo da imagem com a extensão correta (.png ou .webp) -->
+        <button class="slide selected" data-model="CalcitaPancakeBase" data-poster="Calcita.png" aria-label="Ver Calcita em 3D" style="background-image: url('./assets/models/Calcita.png');"></button>
+        <button class="slide" data-model="quartzo" data-poster="quartzo.webp" aria-label="Ver Quartzo em 3D" style="background-image: url('./assets/models/quartzo.webp');"></button>
+        <button class="slide" data-model="pirita" data-poster="pirita.webp" aria-label="Ver Pirita em 3D" style="background-image: url('./assets/models/pirita.webp');"></button>
       </div>
     </div>
   </model-viewer>
@@ -153,13 +155,12 @@
 
     slides.forEach(slide => {
       slide.addEventListener('click', (e) => {
-        const name = e.currentTarget.getAttribute('data-model');
+        const modelName = e.currentTarget.getAttribute('data-model');
+        const posterName = e.currentTarget.getAttribute('data-poster');
         
-        // Caminhos relativos usando "./" funcionam perfeitamente no GitHub Pages
-        const basePath = `./assets/models/${name}`;
-        
-        modelViewer.src = `${basePath}.glb`;
-        modelViewer.poster = `${basePath}.webp`;
+        // Caminhos construídos de forma flexível usando os atributos de dados
+        modelViewer.src = `./assets/models/${modelName}.glb`;
+        modelViewer.poster = `./assets/models/${posterName}`;
         
         // Atualiza a borda de seleção visual
         slides.forEach(s => s.classList.remove("selected"));
