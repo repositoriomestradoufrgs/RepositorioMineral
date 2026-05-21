@@ -48,111 +48,6 @@ model-viewer{
 }
 
 /* =========================
-LOADER
-========================= */
-
-#loading-screen{
-
-  position:absolute;
-
-  inset:0;
-
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-
-  gap:18px;
-
-  background:#000;
-
-  z-index:100;
-
-  transition:opacity .3s ease;
-}
-
-#loading-text{
-
-  color:#ffffff;
-
-  font-size:14px;
-  font-weight:500;
-
-  letter-spacing:.5px;
-}
-
-#progress-container{
-
-  width:220px;
-  height:6px;
-
-  background:#1f1f1f;
-
-  border-radius:999px;
-
-  overflow:hidden;
-}
-
-#progress-bar{
-
-  width:0%;
-
-  height:100%;
-
-  background:#4285f4;
-
-  transition:width .15s linear;
-}
-
-#loading-percent{
-
-  color:#888;
-
-  font-size:12px;
-}
-
-/* =========================
-BOTÃO AR
-========================= */
-
-#ar-button{
-
-  position:absolute;
-
-  left:50%;
-  transform:translateX(-50%);
-
-  bottom:14px;
-
-  display:flex;
-  align-items:center;
-  gap:8px;
-
-  height:42px;
-
-  padding:0 16px;
-
-  border:none;
-  border-radius:999px;
-
-  background:#ffffff;
-
-  color:#4285f4;
-
-  font-size:13px;
-  font-weight:600;
-
-  z-index:20;
-
-  cursor:pointer;
-}
-
-#ar-button img{
-  width:18px;
-  height:18px;
-}
-
-/* =========================
 SLIDER
 ========================= */
 
@@ -161,7 +56,7 @@ SLIDER
   position:absolute;
 
   right:10px;
-  bottom:70px;
+  bottom:10px;
 
   max-width:92vw;
 
@@ -228,7 +123,8 @@ MOBILE
   }
 
   .slider{
-    bottom:66px;
+    bottom:8px;
+    right:8px;
   }
 
 }
@@ -237,7 +133,6 @@ MOBILE
 </head>
 
 <body>
-
 
 <!-- =========================
 MODEL VIEWER
@@ -264,23 +159,7 @@ MODEL VIEWER
   exposure="1"
 
   alt="Modelo mineral 3D"
-
-  ar
-
-  ar-modes="scene-viewer webxr quick-look"
 >
-
-  <!-- =========================
-  BOTÃO AR
-  ========================= -->
-
-  <button slot="ar-button" id="ar-button">
-
-    <img src="./icons/ar.svg">
-
-    Ver no espaço
-
-  </button>
 
   <!-- =========================
   SLIDER
@@ -344,69 +223,7 @@ document.getElementById('viewer');
 const slides =
 document.getElementById('slides');
 
-const loadingScreen =
-document.getElementById('loading-screen');
-
-const progressBar =
-document.getElementById('progress-bar');
-
-const progressPercent =
-document.getElementById('loading-percent');
-
 let currentIndex = 0;
-
-/* =========================
-LOADING BAR
-========================= */
-
-function updateProgress(progress){
-
-  const value =
-  Math.round(progress * 100);
-
-  progressBar.style.width =
-  `${value}%`;
-
-  progressPercent.textContent =
-  `${value}%`;
-
-}
-
-/* progresso do carregamento */
-
-viewer.addEventListener(
-  'progress',
-  (event)=>{
-
-    updateProgress(event.detail.totalProgress);
-
-  }
-);
-
-/* terminou carregamento */
-
-viewer.addEventListener(
-  'load',
-  ()=>{
-
-    progressBar.style.width = '100%';
-
-    progressPercent.textContent = '100%';
-
-    setTimeout(()=>{
-
-      loadingScreen.style.opacity = '0';
-
-      setTimeout(()=>{
-
-        loadingScreen.style.display='none';
-
-      },300);
-
-    },250);
-
-  }
-);
 
 /* =========================
 CRIAR THUMBNAILS
@@ -441,16 +258,6 @@ MODELS.forEach((model,index)=>{
 
     currentIndex = index;
 
-    /* mostra loader novamente */
-
-    loadingScreen.style.display='flex';
-
-    loadingScreen.style.opacity='1';
-
-    progressBar.style.width='0%';
-
-    progressPercent.textContent='0%';
-
     /* remove poster anterior */
 
     viewer.dismissPoster();
@@ -478,53 +285,6 @@ MODELS.forEach((model,index)=>{
   slides.appendChild(btn);
 
 });
-
-/* =========================
-FIX XR
-========================= */
-
-document
-.querySelector('.slider')
-.addEventListener(
-  'beforexrselect',
-  (e)=>{
-
-    e.preventDefault();
-
-  }
-);
-
-/* =========================
-CHECK AR
-========================= */
-
-window.addEventListener(
-  'load',
-  ()=>{
-
-    const supported =
-
-      navigator.xr ||
-
-      /android|iphone|ipad/i
-      .test(navigator.userAgent);
-
-    if(!supported){
-
-      console.warn('AR não suportado');
-
-      document
-      .getElementById('ar-button')
-      .style.display='none';
-
-    }else{
-
-      console.log('AR disponível');
-
-    }
-
-  }
-);
 
 </script>
 
