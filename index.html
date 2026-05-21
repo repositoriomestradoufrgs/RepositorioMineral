@@ -3,9 +3,11 @@
 
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 
-<title>Visualizador 3D</title>
+<meta name="viewport"
+content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<title>Repositório Mineral</title>
 
 <script type="module"
 src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js">
@@ -13,24 +15,25 @@ src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.j
 
 <style>
 
+/* =========================
+RESET
+========================= */
+
 *{
+  margin:0;
+  padding:0;
   box-sizing:border-box;
   -webkit-tap-highlight-color:transparent;
   user-select:none;
 }
 
-html,body{
-  margin:0;
+html,
+body{
   width:100%;
   height:100%;
   overflow:hidden;
   background:#000;
   font-family:system-ui,sans-serif;
-}
-
-body{
-  position:fixed;
-  inset:0;
 }
 
 /* =========================
@@ -40,13 +43,7 @@ MODEL VIEWER
 model-viewer{
   width:100vw;
   height:100vh;
-
   background:#000;
-
-  --progress-bar-color:#4285f4;
-  --progress-bar-height:3px;
-
-  touch-action:none;
 }
 
 /* =========================
@@ -54,119 +51,40 @@ BOTÃO AR
 ========================= */
 
 #ar-button{
+
   position:absolute;
 
   left:50%;
   transform:translateX(-50%);
 
-  bottom:18px;
+  bottom:14px;
 
   display:flex;
   align-items:center;
-  gap:10px;
+  gap:8px;
 
-  height:44px;
+  height:42px;
 
-  padding:0 18px;
+  padding:0 16px;
 
   border:none;
   border-radius:999px;
 
-  background:rgba(255,255,255,.95);
+  background:#ffffff;
 
   color:#4285f4;
 
-  font-size:14px;
+  font-size:13px;
   font-weight:600;
 
-  box-shadow:0 4px 16px rgba(0,0,0,.25);
-
-  backdrop-filter:blur(10px);
-
-  z-index:30;
+  z-index:20;
 
   cursor:pointer;
 }
 
 #ar-button img{
-  width:20px;
-  height:20px;
-}
-
-#ar-button:active{
-  transform:translateX(-50%) scale(.96);
-}
-
-/* =========================
-PROMPT AR
-========================= */
-
-@keyframes orbit{
-  from{
-    transform:rotate(0deg) translateX(42px) rotate(0deg);
-  }
-  to{
-    transform:rotate(360deg) translateX(42px) rotate(-360deg);
-  }
-}
-
-#ar-prompt{
-  position:absolute;
-
-  left:50%;
-  bottom:120px;
-
-  transform:translateX(-50%);
-
-  display:none;
-
-  z-index:20;
-}
-
-model-viewer[ar-status="session-started"] #ar-prompt{
-  display:block;
-}
-
-#ar-prompt img{
-  width:56px;
-  height:56px;
-
-  animation:orbit 3s linear infinite;
-}
-
-/* =========================
-ERRO TRACKING
-========================= */
-
-#ar-failure{
-  position:absolute;
-
-  left:50%;
-  transform:translateX(-50%);
-
-  bottom:86px;
-
-  display:none;
-
-  padding:10px 16px;
-
-  border:none;
-  border-radius:999px;
-
-  background:rgba(0,0,0,.82);
-
-  color:#ffb066;
-
-  font-size:13px;
-  font-weight:500;
-
-  backdrop-filter:blur(6px);
-
-  z-index:20;
-}
-
-model-viewer[ar-tracking="not-tracking"] #ar-failure{
-  display:block;
+  width:18px;
+  height:18px;
 }
 
 /* =========================
@@ -174,12 +92,13 @@ SLIDER
 ========================= */
 
 .slider{
+
   position:absolute;
 
-  right:14px;
-  bottom:78px;
+  right:10px;
+  bottom:70px;
 
-  max-width:90vw;
+  max-width:92vw;
 
   z-index:10;
 
@@ -187,13 +106,15 @@ SLIDER
 }
 
 .slides{
+
   display:flex;
-  gap:10px;
+
+  gap:8px;
 
   overflow-x:auto;
   overflow-y:hidden;
 
-  padding:6px;
+  padding:4px;
 
   scrollbar-width:none;
 
@@ -209,58 +130,40 @@ THUMBNAILS
 ========================= */
 
 .slide{
-  width:68px;
-  height:68px;
+
+  width:58px;
+  height:58px;
 
   flex-shrink:0;
 
-  border:none;
-  border-radius:16px;
+  border-radius:12px;
+
+  border:2px solid rgba(255,255,255,.15);
 
   background-size:cover;
   background-position:center;
-  background-color:#222;
-
-  border:2px solid rgba(255,255,255,.18);
-
-  box-shadow:0 4px 12px rgba(0,0,0,.35);
-
-  transition:
-    transform .15s ease,
-    border-color .15s ease;
+  background-color:#1a1a1a;
 
   cursor:pointer;
 }
 
 .slide.selected{
-  border:3px solid #4285f4;
-  transform:scale(1.04);
-}
-
-.slide:active{
-  transform:scale(.95);
+  border:2px solid #4285f4;
 }
 
 /* =========================
-RESPONSIVO
+MOBILE
 ========================= */
 
 @media (max-width:600px){
 
   .slide{
-    width:58px;
-    height:58px;
+    width:54px;
+    height:54px;
   }
 
   .slider{
-    bottom:72px;
-    right:10px;
-  }
-
-  #ar-button{
-    bottom:14px;
-    height:40px;
-    font-size:13px;
+    bottom:66px;
   }
 
 }
@@ -271,55 +174,52 @@ RESPONSIVO
 <body>
 
 <model-viewer
+
   id="viewer"
 
   src="./models/CalcitaPancakeBase.glb"
-  poster="./models/Calcita.png"
 
-  ar
-  ar-modes="webxr scene-viewer quick-look"
+  poster="./models/Calcita.png"
 
   camera-controls
 
-  exposure="1"
-
-  shadow-intensity="0"
-  shadow-softness="0"
-
-  environment-image="neutral"
-
-  tone-mapping="neutral"
+  disable-pan
 
   interaction-prompt="none"
 
-  disable-pan
+  loading="lazy"
 
-  alt="Modelo 3D interativo"
+  reveal="auto"
+
+  exposure="1"
+
+  alt="Modelo mineral 3D"
+
+  ar
+
+  ar-modes="scene-viewer webxr quick-look"
 >
 
-  <!-- BOTÃO AR -->
+  <!-- =========================
+  BOTÃO AR
+  ========================= -->
 
   <button slot="ar-button" id="ar-button">
-    <img src="https://fonts.gstatic.com/s/i/googlematerialicons/view_in_ar/v13/24px.svg">
-    Ver no seu espaço
+
+    <img src="./icons/ar.svg">
+
+    Ver no espaço
+
   </button>
 
-  <!-- PROMPT AR -->
-
-  <div id="ar-prompt">
-    <img src="https://modelviewer.dev/shared-assets/icons/hand.png">
-  </div>
-
-  <!-- ERRO AR -->
-
-  <button id="ar-failure">
-    AR não detectado
-  </button>
-
-  <!-- THUMBNAILS -->
+  <!-- =========================
+  SLIDER
+  ========================= -->
 
   <div class="slider">
+
     <div class="slides" id="slides"></div>
+
   </div>
 
 </model-viewer>
@@ -327,27 +227,39 @@ RESPONSIVO
 <script type="module">
 
 /* =========================
-LISTA DE MODELOS
+MODELOS
 ========================= */
 
 const MODELS = [
 
   {
+
     name:'Calcita',
+
     glb:'./models/CalcitaPancakeBase.glb',
+
     poster:'./models/Calcita.png'
+
   },
 
   {
+
     name:'Robô',
-    glb:'https://modelviewer.dev/shared-assets/models/RobotExpressive.glb',
-    poster:'https://modelviewer.dev/shared-assets/models/RobotExpressive.webp'
+
+    glb:'./models/RobotExpressive.glb',
+
+    poster:'./models/Robot.webp'
+
   },
 
   {
+
     name:'Cavalo',
-    glb:'https://modelviewer.dev/shared-assets/models/Horse.glb',
-    poster:'https://modelviewer.dev/shared-assets/models/Horse.webp'
+
+    glb:'./models/Horse.glb',
+
+    poster:'./models/Horse.webp'
+
   }
 
 ];
@@ -356,8 +268,11 @@ const MODELS = [
 ELEMENTOS
 ========================= */
 
-const viewer = document.getElementById('viewer');
-const slides = document.getElementById('slides');
+const viewer =
+document.getElementById('viewer');
+
+const slides =
+document.getElementById('slides');
 
 let currentIndex = 0;
 
@@ -367,19 +282,26 @@ CRIAR THUMBNAILS
 
 MODELS.forEach((model,index)=>{
 
-  const btn = document.createElement('button');
+  const btn =
+  document.createElement('button');
 
   btn.className = 'slide';
 
   if(index === 0){
+
     btn.classList.add('selected');
+
   }
 
-  btn.style.backgroundImage = `url(${model.poster})`;
+  btn.style.backgroundImage =
+  `url(${model.poster})`;
 
   btn.title = model.name;
 
-  btn.setAttribute('aria-label',model.name);
+  btn.setAttribute(
+    'aria-label',
+    model.name
+  );
 
   btn.addEventListener('click',()=>{
 
@@ -394,16 +316,18 @@ MODELS.forEach((model,index)=>{
     /* troca modelo */
 
     viewer.src = model.glb;
+
     viewer.poster = model.poster;
-
-    /* reseta câmera */
-
-    viewer.cameraOrbit = '0deg 75deg auto';
 
     /* atualiza thumb */
 
-    document.querySelectorAll('.slide')
-      .forEach(el=>el.classList.remove('selected'));
+    document
+      .querySelectorAll('.slide')
+      .forEach(el=>{
+
+        el.classList.remove('selected');
+
+      });
 
     btn.classList.add('selected');
 
@@ -417,34 +341,48 @@ MODELS.forEach((model,index)=>{
 FIX XR
 ========================= */
 
-document.querySelector('.slider')
-.addEventListener('beforexrselect',(e)=>{
-  e.preventDefault();
-});
+document
+.querySelector('.slider')
+.addEventListener(
+  'beforexrselect',
+  (e)=>{
 
-/* =========================
-VERIFICA AR
-========================= */
-
-window.addEventListener('load', async()=>{
-
-  await customElements.whenDefined('model-viewer');
-
-  const supported = await viewer.canActivateAR;
-
-  if(!supported){
-
-    console.warn('AR não suportado');
-
-    document.getElementById('ar-button').style.display='none';
-
-  }else{
-
-    console.log('AR suportado');
+    e.preventDefault();
 
   }
+);
 
-});
+/* =========================
+CHECK AR
+========================= */
+
+window.addEventListener(
+  'load',
+  ()=>{
+
+    const supported =
+
+      navigator.xr ||
+
+      /android|iphone|ipad/i
+      .test(navigator.userAgent);
+
+    if(!supported){
+
+      console.warn('AR não suportado');
+
+      document
+      .getElementById('ar-button')
+      .style.display='none';
+
+    }else{
+
+      console.log('AR disponível');
+
+    }
+
+  }
+);
 
 </script>
 
