@@ -1,177 +1,173 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Visualizador de Amostras Minerais 3D</title>
+<model-viewer src="../../assets/ShopifyModels/Chair.glb" poster="../../assets/ShopifyModels/Chair.webp" shadow-intensity="1" ar camera-controls touch-action="pan-y" alt="A 3D model carousel">
   
-  <!-- Importa o componente model-viewer nativo do Google -->
-  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
+  <button slot="ar-button" id="ar-button">
+    View in your space
+  </button>
 
-  <style>
-    /* Garante que os elementos filhos fiquem ocultos enquanto o componente carrega */
-    :not(:defined) > * {
-      display: none;
-    }
+  <div id="ar-prompt">
+    <img src="../../assets/hand.png">
+  </div>
 
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    }
+  <button id="ar-failure">
+    AR is not tracking!
+  </button>
 
-    model-viewer {
-      width: 100vw;
-      height: 100vh;
-      background-color: #f5f5f7;
-      overflow-x: hidden;
-    }
+  <div class="slider">
+    <div class="slides">
+      <button class="slide selected" onclick="switchSrc(this, 'Chair')" style="background-image: url('../../assets/ShopifyModels/Chair.webp');">
 
-    #ar-button {
-      background-color: #ffffff;
-      position: absolute;
-      left: 50%;
-      transform: translateX(-50%);
-      white-space: nowrap;
-      bottom: 140px;
-      padding: 0px 16px;
-      font-size: 14px;
-      font-weight: 500;
-      color: #222;
-      height: 40px;
-      line-height: 40px;
-      border-radius: 20px;
-      border: 1px solid #d2d2d7;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-      cursor: pointer;
-      transition: background-color 0.2s;
-    }
+      </button><button class="slide" onclick="switchSrc(this, 'Mixer')" style="background-image: url('../../assets/ShopifyModels/Mixer.webp');">
 
-    #ar-button:active {
-      background-color: #f5f5f7;
-    }
+      </button><button class="slide" onclick="switchSrc(this, 'GeoPlanter')" style="background-image: url('../../assets/ShopifyModels/GeoPlanter.webp');">
+      
+      </button><button class="slide" onclick="switchSrc(this, 'ToyTrain')" style="background-image: url('../../assets/ShopifyModels/ToyTrain.webp');">
+      
+      </button><button class="slide" onclick="switchSrc(this, 'Canoe')" style="background-image: url('../../assets/ShopifyModels/Canoe.webp');">    
+    </button></div>
+  </div>
+</model-viewer>
 
-    #ar-failure {
-      position: absolute;
-      left: 50%;
-      transform: translateX(-50%);
-      bottom: 140px;
-      background: rgba(0, 0, 0, 0.8);
-      color: white;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 4px;
-      display: none;
-    }
+<script type="module">
+  const modelViewer = document.querySelector("model-viewer");
 
-    model-viewer[ar-tracking="not-tracking"] > #ar-failure {
-      display: block;
-    }
-
-    .slider {
-      width: 100%;
-      text-align: center;
-      overflow: hidden;
-      position: absolute;
-      bottom: 24px;
-      z-index: 10;
-    }
-
-    .slides {
-      display: flex;
-      overflow-x: auto;
-      scroll-snap-type: x mandatory;
-      scroll-behavior: smooth;
-      -webkit-overflow-scrolling: touch;
-      padding: 0 20px;
-      gap: 12px;
-      justify-content: center;
-    }
-
-    .slide {
-      scroll-snap-align: start;
-      flex-shrink: 0;
-      width: 80px;
-      height: 80px;
-      background-size: cover;
-      background-repeat: no-repeat;
-      background-position: center;
-      background-color: #fff;
-      border-radius: 12px;
-      border: 2px solid transparent;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      cursor: pointer;
-      transition: border-color 0.2s, transform 0.2s;
-    }
-
-    .slide:hover {
-      transform: scale(1.05);
-    }
-
-    .slide.selected {
-      border-color: #0071e3;
-    }
-
-    .slide:focus-visible {
-      outline: 2px solid #0071e3;
-    }
-  </style>
-</head>
-<body>
-
-  <!-- O modelo inicial padrão agora está alinhado com o primeiro botão do carrossel -->
-  <model-viewer 
-    src="./assets/models/CalcitaPancakeBase.glb" 
-    poster="./assets/models/Calcita.png" 
-    shadow-intensity="1" 
-    exposure="1"
-    ar 
-    camera-controls 
-    touch-action="pan-y" 
-    alt="Visualizador 3D de Amostras Minerais">
-    
-    <button slot="ar-button" id="ar-button">
-      Ver em Realidade Aumentada (RA)
-    </button>
-
-    <button id="ar-failure">
-      A RA perdeu o rastreamento!
-    </button>
-
-    <div class="slider">
-      <div class="slides">
-        <!-- data-model deve corresponder exatamente ao nome do arquivo .glb (sem a extensão) -->
-        <!-- data-poster guarda o nome completo da imagem com a extensão correta (.png ou .webp) -->
-        <button class="slide selected" data-model="CalcitaPancakeBase" data-poster="Calcita.png" aria-label="Ver Calcita em 3D" style="background-image: url('./assets/models/Calcita.png');"></button>
-        <button class="slide" data-model="quartzo" data-poster="quartzo.webp" aria-label="Ver Quartzo em 3D" style="background-image: url('./assets/models/quartzo.webp');"></button>
-        <button class="slide" data-model="pirita" data-poster="pirita.webp" aria-label="Ver Pirita em 3D" style="background-image: url('./assets/models/pirita.webp');"></button>
-      </div>
-    </div>
-  </model-viewer>
-
-  <script type="module">
-    const modelViewer = document.querySelector("model-viewer");
+  window.switchSrc = (element, name) => {
+    const base = "../../assets/ShopifyModels/" + name;
+    modelViewer.src = base + '.glb';
+    modelViewer.poster = base + '.webp';
     const slides = document.querySelectorAll(".slide");
+    slides.forEach((element) => {element.classList.remove("selected");});
+    element.classList.add("selected");
+  };
 
-    slides.forEach(slide => {
-      slide.addEventListener('click', (e) => {
-        const modelName = e.currentTarget.getAttribute('data-model');
-        const posterName = e.currentTarget.getAttribute('data-poster');
-        
-        // Caminhos construídos de forma flexível usando os atributos de dados
-        modelViewer.src = `./assets/models/${modelName}.glb`;
-        modelViewer.poster = `./assets/models/${posterName}`;
-        
-        // Atualiza a borda de seleção visual
-        slides.forEach(s => s.classList.remove("selected"));
-        e.currentTarget.classList.add("selected");
-      });
-    });
+  document.querySelector(".slider").addEventListener('beforexrselect', (ev) => {
+    // Keep slider interactions from affecting the XR scene.
+    ev.preventDefault();
+  });
+</script>
 
-    // Impede que interações no carrossel afetem a cena em Realidade Aumentada
-    document.querySelector(".slider").addEventListener('beforexrselect', (ev) => {
-      ev.preventDefault();
-    });
-  </script>
-</body>
-</html>
+<style>
+  /* This keeps child nodes hidden while the element loads */
+  :not(:defined) > * {
+    display: none;
+  }
+
+  model-viewer {
+    background-color: #eee;
+    overflow-x: hidden;
+  }
+
+  #ar-button {
+    background-image: url(../../assets/ic_view_in_ar_new_googblue_48dp.png);
+    background-repeat: no-repeat;
+    background-size: 20px 20px;
+    background-position: 12px 50%;
+    background-color: #fff;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    bottom: 132px;
+    padding: 0px 16px 0px 40px;
+    font-family: Roboto Regular, Helvetica Neue, sans-serif;
+    font-size: 14px;
+    color:#4285f4;
+    height: 36px;
+    line-height: 36px;
+    border-radius: 18px;
+    border: 1px solid #DADCE0;
+  }
+
+  #ar-button:active {
+    background-color: #E8EAED;
+  }
+
+  #ar-button:focus {
+    outline: none;
+  }
+
+  #ar-button:focus-visible {
+    outline: 1px solid #4285f4;
+  }
+
+  @keyframes circle {
+    from { transform: translateX(-50%) rotate(0deg) translateX(50px) rotate(0deg); }
+    to   { transform: translateX(-50%) rotate(360deg) translateX(50px) rotate(-360deg); }
+  }
+
+  @keyframes elongate {
+    from { transform: translateX(100px); }
+    to   { transform: translateX(-100px); }
+  }
+
+  model-viewer > #ar-prompt {
+    position: absolute;
+    left: 50%;
+    bottom: 175px;
+    animation: elongate 2s infinite ease-in-out alternate;
+    display: none;
+  }
+
+  model-viewer[ar-status="session-started"] > #ar-prompt {
+    display: block;
+  }
+
+  model-viewer > #ar-prompt > img {
+    animation: circle 4s linear infinite;
+  }
+
+  model-viewer > #ar-failure {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 175px;
+    display: none;
+  }
+
+  model-viewer[ar-tracking="not-tracking"] > #ar-failure {
+    display: block;
+  }
+
+  .slider {
+    width: 100%;
+    text-align: center;
+    overflow: hidden;
+    position: absolute;
+    bottom: 16px;
+  }
+
+  .slides {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .slide {
+    scroll-snap-align: start;
+    flex-shrink: 0;
+    width: 100px;
+    height: 100px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-color: #fff;
+    margin-right: 10px;
+    border-radius: 10px;
+    border: none;
+    display: flex;
+  }
+
+  .slide.selected {
+    border: 2px solid #4285f4;
+  }
+
+  .slide:focus {
+    outline: none;
+  }
+
+  .slide:focus-visible {
+    outline: 1px solid #4285f4;
+  }
+
+</style>
