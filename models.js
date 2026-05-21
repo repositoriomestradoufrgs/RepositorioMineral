@@ -4,9 +4,9 @@
 
 const modelsList = [
     {
-        id: "dragon",
-        name: "Dragão Fantasia",
-        modelUrl: "https://threejs.org/examples/models/gltf/Dragon.glb", // Exemplo público
+        id: "calcita",
+        name: "calcita",
+        modelUrl: "CalcitaPancakeBase.glb", // Exemplo público
         thumbnail: "https://threejs.org/examples/models/gltf/Dragon.glb", // fallback
         format: "glb"
     },
