@@ -6,7 +6,7 @@ const modelsList = [
     {
         id: "calcita",
         name: "calcita",
-        modelUrl: "CalcitaPancakeBase.glb", // Exemplo público
+        modelUrl: "./CalcitaPancakeBase.glb", // Exemplo público
         thumbnail: "https://threejs.org/examples/models/gltf/Dragon.glb", // fallback
         format: "glb"
     },
