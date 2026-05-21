@@ -1,301 +1,431 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-  <title>Visualizador 3D </title>
-  <!-- Importa o model-viewer -->
-  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js"></script>
-  <style>
-    /* Reset e base */
-    * {
-      box-sizing: border-box;
-      user-select: none; /* evita seleção acidental nos thumbs */
-    }
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 
-    body {
-      margin: 0;
-      min-height: 100vh;
-      background: #111;
-      font-family: system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
-      overflow: hidden; /* evita rolagem da página, o modelo ocupa tudo */
-    }
+<title>Visualizador 3D</title>
 
-    /* Modelo 3D ocupa toda a tela */
-    model-viewer {
-      width: 100vw;
-      height: 100vh;
-      background-color: #1a1a2e;
-      --progress-bar-color: #4285f4;
-      --progress-bar-height: 3px;
-    }
+<script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js"></script>
 
-    /* Botão AR (centralizado inferior) */
-    #ar-button {
-      background-image: url('https://fonts.gstatic.com/s/i/googlematerialicons/view_in_ar/v13/24px.svg');
-      background-repeat: no-repeat;
-      background-size: 20px 20px;
-      background-position: 12px 50%;
-      background-color: rgba(255,255,255,0.95);
-      position: absolute;
-      left: 50%;
-      transform: translateX(-50%);
-      bottom: 24px;
-      padding: 0 20px 0 44px;
-      font-size: 15px;
-      font-weight: 500;
-      color: #4285f4;
-      height: 44px;
-      line-height: 44px;
-      border-radius: 40px;
-      border: none;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.2);
-      cursor: pointer;
-      z-index: 30;
-      white-space: nowrap;
-      backdrop-filter: blur(8px);
-      transition: all 0.2s;
-    }
-    #ar-button:active { transform: translateX(-50%) scale(0.97); background-color: white; }
-    #ar-button:focus { outline: none; }
+<style>
 
-    /* Prompt AR (mãozinha animada) */
-    @keyframes circle {
-      from { transform: translateX(-50%) rotate(0deg) translateX(50px) rotate(0deg); }
-      to   { transform: translateX(-50%) rotate(360deg) translateX(50px) rotate(-360deg); }
-    }
-    @keyframes elongate {
-      from { transform: translateX(100px); }
-      to   { transform: translateX(-100px); }
-    }
-    model-viewer > #ar-prompt {
-      position: absolute;
-      left: 90%;
-      bottom: 100px;
-      animation: elongate 2s infinite ease-in-out alternate;
-      display: none;
-      z-index: 25;
-      pointer-events: none;
-    }
-    model-viewer[ar-status="session-started"] > #ar-prompt {
-      display: block;
-    }
-    model-viewer > #ar-prompt > img {
-      animation: circle 4s linear infinite;
-      width: 48px;
-      height: 48px;
-      filter: drop-shadow(0 2px 8px rgba(0,0,0,0.3));
-    }
+*{
+  box-sizing:border-box;
+  -webkit-tap-highlight-color:transparent;
+}
 
-    /* Mensagem de falha de tracking */
-    model-viewer > #ar-failure {
-      position: absolute;
-      left: 50%;
-      transform: translateX(-50%);
-      bottom: 100px;
-      background: rgba(0,0,0,0.8);
-      color: #ffaa66;
-      padding: 8px 18px;
-      border-radius: 40px;
-      font-size: 14px;
-      display: none;
-      z-index: 25;
-      white-space: nowrap;
-      font-weight: 500;
-      backdrop-filter: blur(4px);
-    }
-    model-viewer[ar-tracking="not-tracking"] > #ar-failure {
-      display: block;
-    }
+html,body{
+  margin:0;
+  width:100%;
+  height:100%;
+  overflow:hidden;
+  background:#111;
+  font-family:system-ui,sans-serif;
+}
 
-    /* ===== SLIDER (thumbnails no CANTO INFERIOR DIREITO) ===== */
-    .slider {
-      position: absolute;
-      bottom: 20px;
-      right: 20px;
-      left: auto;           /* remove o centralizado */
-      width: auto;
-      max-width: 85vw;
-      pointer-events: none; /* container não bloqueia clique no modelo */
-      z-index: 20;
-    }
+body{
+  position:fixed;
+  inset:0;
+}
 
-    .slides {
-      display: flex;
-      flex-direction: row;
-      gap: 12px;
-      overflow-x: auto;
-      overflow-y: hidden;
-      scroll-snap-type: x mandatory;
-      padding: 8px 4px;
-      pointer-events: auto; /* só os thumbs recebem clique */
-      justify-content: flex-end; /* alinha à direita */
-      scrollbar-width: thin;
-    }
+/* =========================
+MODEL VIEWER
+========================= */
 
-    /* Estilo dos thumbs */
-    .slide {
-      scroll-snap-align: start;
-      flex-shrink: 0;
-      width: 70px;
-      height: 70px;
-      background-size: cover;
-      background-position: center;
-      background-color: rgba(30,30,40,0.8);
-      border-radius: 16px;
-      border: 2px solid rgba(255,255,255,0.3);
-      cursor: pointer;
-      transition: all 0.2s ease;
-      backdrop-filter: blur(4px);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    }
+model-viewer{
+  width:100vw;
+  height:100vh;
+  background:#161622;
 
-    .slide.selected {
-      border: 3px solid #4285f4;
-      transform: scale(1.02);
-      box-shadow: 0 0 0 2px rgba(66,133,244,0.4);
-    }
+  --progress-bar-color:#4285f4;
+  --progress-bar-height:3px;
 
-    .slide:hover {
-      transform: scale(1.05);
-      border-color: white;
-    }
+  touch-action:none;
+}
 
-    /* Esconde a barra de rolagem em navegadores WebKit, mas mantém funcionalidade */
-    .slides::-webkit-scrollbar {
-      height: 3px;
-    }
-    .slides::-webkit-scrollbar-track {
-      background: rgba(255,255,255,0.2);
-      border-radius: 4px;
-    }
-    .slides::-webkit-scrollbar-thumb {
-      background: #4285f4;
-      border-radius: 4px;
-    }
+/* =========================
+BOTÃO AR
+========================= */
 
-    /* Responsivo: em telas muito pequenas, thumbs um pouco menores */
-    @media (max-width: 600px) {
-      .slide {
-        width: 60px;
-        height: 60px;
-      }
-      #ar-button {
-        bottom: 16px;
-        height: 40px;
-        line-height: 40px;
-        font-size: 13px;
-        padding: 0 16px 0 38px;
-      }
-      .slider {
-        bottom: 12px;
-        right: 12px;
-      }
-    }
+#ar-button{
+  position:absolute;
+  left:50%;
+  transform:translateX(-50%);
+  bottom:20px;
 
-    /* Pequeno ajuste para evitar sobreposição com o botão AR em telas muito baixas */
-    @media (max-height: 500px) {
-      .slider {
-        bottom: 8px;
-      }
-      #ar-button {
-        bottom: 8px;
-      }
-    }
-  </style>
+  display:flex;
+  align-items:center;
+  gap:10px;
+
+  height:46px;
+  padding:0 18px;
+
+  border:none;
+  border-radius:999px;
+
+  background:rgba(255,255,255,.95);
+
+  color:#4285f4;
+  font-size:14px;
+  font-weight:600;
+
+  box-shadow:0 4px 18px rgba(0,0,0,.25);
+
+  backdrop-filter:blur(10px);
+
+  z-index:30;
+}
+
+#ar-button img{
+  width:20px;
+  height:20px;
+}
+
+#ar-button:active{
+  transform:translateX(-50%) scale(.96);
+}
+
+/* =========================
+PROMPT AR
+========================= */
+
+@keyframes orbit{
+  from{
+    transform:rotate(0deg) translateX(42px) rotate(0deg);
+  }
+  to{
+    transform:rotate(360deg) translateX(42px) rotate(-360deg);
+  }
+}
+
+#ar-prompt{
+  position:absolute;
+  left:50%;
+  bottom:120px;
+
+  display:none;
+
+  transform:translateX(-50%);
+
+  z-index:20;
+}
+
+model-viewer[ar-status="session-started"] #ar-prompt{
+  display:block;
+}
+
+#ar-prompt img{
+  width:56px;
+  height:56px;
+  animation:orbit 3s linear infinite;
+}
+
+/* =========================
+ERRO TRACKING
+========================= */
+
+#ar-failure{
+  position:absolute;
+
+  left:50%;
+  transform:translateX(-50%);
+
+  bottom:90px;
+
+  display:none;
+
+  padding:10px 16px;
+
+  border-radius:999px;
+  border:none;
+
+  background:rgba(0,0,0,.8);
+
+  color:#ffb066;
+
+  font-size:13px;
+  font-weight:500;
+
+  backdrop-filter:blur(6px);
+
+  z-index:20;
+}
+
+model-viewer[ar-tracking="not-tracking"] #ar-failure{
+  display:block;
+}
+
+/* =========================
+SLIDER
+========================= */
+
+.slider{
+  position:absolute;
+
+  right:14px;
+  bottom:84px;
+
+  max-width:90vw;
+
+  z-index:10;
+
+  pointer-events:none;
+}
+
+.slides{
+  display:flex;
+  gap:10px;
+
+  overflow-x:auto;
+  overflow-y:hidden;
+
+  padding:6px;
+
+  scrollbar-width:none;
+
+  pointer-events:auto;
+}
+
+.slides::-webkit-scrollbar{
+  display:none;
+}
+
+/* =========================
+THUMBS
+========================= */
+
+.slide{
+  width:68px;
+  height:68px;
+
+  flex-shrink:0;
+
+  border:none;
+  border-radius:16px;
+
+  background-size:cover;
+  background-position:center;
+  background-color:#222;
+
+  box-shadow:
+    0 4px 12px rgba(0,0,0,.35);
+
+  border:2px solid rgba(255,255,255,.2);
+
+  transition:
+    transform .15s ease,
+    border-color .15s ease;
+
+  cursor:pointer;
+}
+
+.slide.selected{
+  border:3px solid #4285f4;
+  transform:scale(1.05);
+}
+
+.slide:active{
+  transform:scale(.95);
+}
+
+/* =========================
+MOBILE
+========================= */
+
+@media (max-width:600px){
+
+  .slide{
+    width:58px;
+    height:58px;
+  }
+
+  .slider{
+    bottom:76px;
+    right:10px;
+  }
+
+  #ar-button{
+    bottom:14px;
+    font-size:13px;
+    height:42px;
+  }
+}
+
+</style>
 </head>
+
 <body>
 
 <model-viewer
-  id="model-viewer"
+  id="viewer"
+
   src="./models/CalcitaPancakeBase.glb"
   poster="./models/Calcita.png"
-  shadow-intensity="1"
+
   ar
-  ar-modes="scene-viewer webxr quick-look"
+  ar-modes="webxr scene-viewer quick-look"
+
   camera-controls
-  touch-action="pan-y"
+  auto-rotate
+
+  shadow-intensity="1"
+
+  exposure="1"
+
+  loading="eager"
+
+  reveal="auto"
+
   alt="Modelo 3D interativo"
 >
+
   <button slot="ar-button" id="ar-button">
+    <img src="https://fonts.gstatic.com/s/i/googlematerialicons/view_in_ar/v13/24px.svg">
     Ver no seu espaço
   </button>
+
   <div id="ar-prompt">
-    <img src="https://modelviewer.dev/shared-assets/icons/hand.png" alt="Mova o dispositivo">
+    <img src="https://modelviewer.dev/shared-assets/icons/hand.png">
   </div>
+
   <button id="ar-failure">
-    AR não está rastreando
+    AR não detectado
   </button>
 
-  <!-- Thumbnails no canto inferior direito -->
   <div class="slider">
-    <div class="slides" id="slide-list"></div>
+    <div class="slides" id="slides"></div>
   </div>
+
 </model-viewer>
 
 <script type="module">
-  // ===== SUBSTITUA AQUI PELOS SEUS MODELOS (Chair, Mixer, GeoPlanter, ToyTrain, Canoe) =====
-  const MODELS = [
-    {
-      name: 'Calcita',
-      glb: './models/CalcitaPancakeBase.glb',
-      poster: './models/Calcita.png'
-    },
-    {
-      name: 'Robô',
-      glb: 'https://modelviewer.dev/shared-assets/models/RobotExpressive.glb',
-      poster: 'https://modelviewer.dev/shared-assets/models/RobotExpressive.webp'
-    },
-    {
-      name: 'Cavalo',
-      glb: 'https://modelviewer.dev/shared-assets/models/Horse.glb',
-      poster: 'https://modelviewer.dev/shared-assets/models/Horse.webp'
-    },
-    {
-      name: 'Canoa',
-      glb: 'https://threejs.org/examples/models/gltf/Canoe.glb',
-      poster: 'https://threejs.org/examples/models/gltf/Canoe.png'
-    }
-    // Exemplo com seus arquivos locais (descomente e ajuste o caminho):
-    // { name: 'Cadeira', glb: './assets/ShopifyModels/Chair.glb', poster: './assets/ShopifyModels/Chair.webp' },
-    // { name: 'Mixer', glb: './assets/ShopifyModels/Mixer.glb', poster: './assets/ShopifyModels/Mixer.webp' }
-  ];
 
-  const modelViewer = document.getElementById('model-viewer');
-  const slidesContainer = document.getElementById('slide-list');
+const MODELS = [
 
-  // Gera as thumbnails dinamicamente
-  MODELS.forEach((model, index) => {
-    const thumb = document.createElement('button');
-    thumb.className = 'slide';
-    if (index === 0) thumb.classList.add('selected');
-    thumb.style.backgroundImage = `url('${model.poster}')`;
-    thumb.setAttribute('aria-label', `Visualizar ${model.name}`);
-    thumb.title = model.name;
-    
-    thumb.addEventListener('click', () => {
-      // Troca o modelo 3D
-      modelViewer.src = model.glb;
-      modelViewer.poster = model.poster;
-      // Atualiza o estilo "selecionado"
-      document.querySelectorAll('.slide').forEach(btn => btn.classList.remove('selected'));
-      thumb.classList.add('selected');
-    });
-    
-    slidesContainer.appendChild(thumb);
-  });
+  {
+    name:'Calcita',
+    glb:'./models/CalcitaPancakeBase.glb',
+    poster:'./models/Calcita.png'
+  },
 
-  // Evita que o slider atrapalhe eventos de toque no XR (AR)
-  document.querySelector('.slider').addEventListener('beforexrselect', (ev) => {
-    ev.preventDefault();
-  });
+  {
+    name:'Robô',
+    glb:'https://modelviewer.dev/shared-assets/models/RobotExpressive.glb',
+    poster:'https://modelviewer.dev/shared-assets/models/RobotExpressive.webp'
+  },
 
-  // Mensagem no console se AR for suportado
-  if (modelViewer.canActivateAR) {
-    console.log('✅ AR suportado neste dispositivo/navegador.');
-  } else {
-    console.warn('⚠️ AR não suportado. O botão "Ver no seu espaço" não funcionará.');
+  {
+    name:'Cavalo',
+    glb:'https://modelviewer.dev/shared-assets/models/Horse.glb',
+    poster:'https://modelviewer.dev/shared-assets/models/Horse.webp'
   }
+
+];
+
+const viewer = document.getElementById('viewer');
+const slides = document.getElementById('slides');
+
+let currentIndex = 0;
+
+/* =========================
+CRIAR THUMBNAILS
+========================= */
+
+MODELS.forEach((model,index)=>{
+
+  const btn = document.createElement('button');
+
+  btn.className = 'slide';
+
+  if(index===0){
+    btn.classList.add('selected');
+  }
+
+  btn.style.backgroundImage = `url(${model.poster})`;
+
+  btn.title = model.name;
+
+  btn.setAttribute('aria-label',model.name);
+
+  btn.addEventListener('click',()=>{
+
+    if(currentIndex === index) return;
+
+    currentIndex = index;
+
+    /* limpa textura anterior */
+    viewer.dismissPoster();
+
+    /* troca modelo */
+    viewer.src = model.glb;
+    viewer.poster = model.poster;
+
+    /* reseta câmera */
+    viewer.cameraOrbit = '0deg 75deg auto';
+
+    /* atualiza seleção */
+    document.querySelectorAll('.slide')
+      .forEach(el=>el.classList.remove('selected'));
+
+    btn.classList.add('selected');
+
+  });
+
+  slides.appendChild(btn);
+
+});
+
+/* =========================
+XR FIX
+========================= */
+
+document.querySelector('.slider')
+.addEventListener('beforexrselect',(e)=>{
+  e.preventDefault();
+});
+
+/* =========================
+AR SUPPORT CHECK
+========================= */
+
+window.addEventListener('load', async()=>{
+
+  await customElements.whenDefined('model-viewer');
+
+  const supported = await viewer.canActivateAR;
+
+  if(!supported){
+
+    console.warn('AR não suportado');
+
+    document.getElementById('ar-button').style.display='none';
+
+  }else{
+
+    console.log('AR suportado');
+
+  }
+
+});
+
+/* =========================
+PERFORMANCE MOBILE
+========================= */
+
+/* reduz qualidade em aparelhos fracos */
+
+const isMobile =
+/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+if(isMobile){
+
+  viewer.shadowIntensity = 0.6;
+
+  viewer.exposure = 0.9;
+
+}
+
 </script>
 
 </body>
