@@ -4,6 +4,217 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
     <title>Visualizador 3D | Catálogo de Modelos</title>
+    <!-- Tailwind CSS CDN (aviso de produção pode ser ignorado) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Fallback de fonte simples, sem dependência externa */
+        body { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+        .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow-x: hidden; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-900 to-gray-800">
+
+    <!-- CATÁLOGO -->
+    <div id="catalog-view" class="min-h-screen w-full px-4 py-8 md:py-12">
+        <div class="max-w-7xl mx-auto">
+            <h1 class="text-4xl md:text-5xl font-extrabold text-center text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 to-purple-200">📦 Galeria 3D</h1>
+            <p class="text-center text-indigo-100/70 mb-10">Clique em qualquer modelo para inspecionar com controles orbitais</p>
+            <div id="model-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-7"></div>
+        </div>
+    </div>
+
+    <!-- VISUALIZADOR 3D -->
+    <div id="viewer-container" class="hidden fixed inset-0 w-full h-full z-50 bg-black/95 backdrop-blur-sm">
+        <div class="absolute top-0 left-0 right-0 flex justify-between p-4 z-20 pointer-events-none">
+            <button id="back-button" class="pointer-events-auto bg-gray-800/90 hover:bg-indigo-600 text-white font-semibold py-2 px-5 rounded-xl backdrop-blur flex items-center gap-2 transition">← Catálogo</button>
+            <button id="reset-camera" class="pointer-events-auto bg-gray-800/80 hover:bg-indigo-500 text-white text-sm py-2 px-4 rounded-xl backdrop-blur">🎥 Centralizar</button>
+        </div>
+        <div id="status-area" class="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex flex-col gap-2 w-full max-w-md pointer-events-none">
+            <div id="loading-status" class="hidden bg-black/70 backdrop-blur-md text-white px-5 py-2 rounded-full text-sm text-center">⏳ Carregando modelo...</div>
+            <div id="error-status" class="hidden bg-red-900/90 backdrop-blur-md border border-red-400 text-red-100 px-5 py-2 rounded-xl text-sm text-center">⚠️ Falha no carregamento</div>
+        </div>
+    </div>
+
+    <script type="module">
+        // ========== USAR SOMENTE UNPKG - SEM SKYPACK ==========
+        import * as THREE from 'https://unpkg.com/three@0.136.0/build/three.module.js';
+        import { OrbitControls } from 'https://unpkg.com/three@0.136.0/examples/jsm/controls/OrbitControls.js';
+        import { GLTFLoader } from 'https://unpkg.com/three@0.136.0/examples/jsm/loaders/GLTFLoader.js';
+        import { DRACOLoader } from 'https://unpkg.com/three@0.136.0/examples/jsm/loaders/DRACOLoader.js';
+
+        // ========== CONFIGURE OS CAMINHOS DOS MODELOS ==========
+        const MODELS = [
+            { id: 'calcita', name: '✨ Calcita Original', gltfUrl: './CalcitaPancakeBase.glb', thumbnail: './images/calcita_original.png', desc: 'Geometria mineral com alta exposição.' },
+            { id: 'apf1', name: '🤖 APF1 Robô', gltfUrl: './models/APF1-v1.glb', thumbnail: './images/APF1-v1.png', desc: 'Robô industrial detalhado.' },
+            { id: 'helmet', name: '⛑️ Capacete Voo', gltfUrl: './models/FlightHelmet.gltf', thumbnail: './images/capacete_voo.png', desc: 'Modelo PBR realista.' },
+            { id: 'viking', name: '🏛️ Sala Viking', gltfUrl: './models/VikingRoom.gltf', thumbnail: './images/sala_viking.png', desc: 'Ambiente completo com iluminação.' }
+        ];
+
+        // Elementos DOM
+        const catalogDiv = document.getElementById('catalog-view');
+        const viewerDiv = document.getElementById('viewer-container');
+        const gridContainer = document.getElementById('model-grid');
+        const backBtn = document.getElementById('back-button');
+        const resetCamBtn = document.getElementById('reset-camera');
+        const loadingDiv = document.getElementById('loading-status');
+        const errorDiv = document.getElementById('error-status');
+
+        let scene, camera, renderer, controls, currentModel = null;
+        let animFrame = null;
+        let threeReady = false;
+
+        function showCatalog() {
+            viewerDiv.classList.add('hidden');
+            catalogDiv.classList.remove('hidden');
+            if (animFrame) cancelAnimationFrame(animFrame);
+            if (renderer) { renderer.dispose(); renderer.domElement?.remove(); renderer = null; }
+            if (controls) controls.dispose();
+            controls = null; scene = null; camera = null; threeReady = false;
+        }
+
+        function showViewer(modelUrl) {
+            catalogDiv.classList.add('hidden');
+            viewerDiv.classList.remove('hidden');
+            errorDiv.classList.add('hidden');
+            loadingDiv.classList.remove('hidden');
+            loadingDiv.textContent = '🖥️ Iniciando motor 3D...';
+            if (!threeReady) initThree();
+            loadModel(modelUrl);
+        }
+
+        function initThree() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x111217);
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(1.5, 1.2, 2.8);
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.outputColorSpace = THREE.SRGBColorSpace;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.7;
+            viewerDiv.appendChild(renderer.domElement);
+
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.target.set(0, 0, 0);
+
+            // Iluminação profissional
+            scene.add(new THREE.AmbientLight(0xffffff, 1.0));
+            const main = new THREE.DirectionalLight(0xfff5e0, 2.2); main.position.set(3,5,2); scene.add(main);
+            const fill = new THREE.DirectionalLight(0xbbddff, 1.2); fill.position.set(-2,1.5,-2); scene.add(fill);
+            const rim = new THREE.DirectionalLight(0xffaa88, 1.0); rim.position.set(0,1.2,-3); scene.add(rim);
+            
+            const grid = new THREE.GridHelper(5, 20, 0x8899aa, 0x445566);
+            grid.position.y = -0.9; grid.material.transparent = true; grid.material.opacity = 0.2;
+            scene.add(grid);
+            
+            threeReady = true;
+            animate();
+        }
+
+        function animate() {
+            animFrame = requestAnimationFrame(animate);
+            if (controls) controls.update();
+            if (renderer && scene && camera) renderer.render(scene, camera);
+        }
+
+        function loadModel(url) {
+            if (currentModel) { scene.remove(currentModel); currentModel = null; }
+            const loader = new GLTFLoader();
+            const draco = new DRACOLoader();
+            draco.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
+            loader.setDRACOLoader(draco);
+
+            loadingDiv.textContent = '📦 Carregando modelo...';
+            loader.load(url, 
+                (gltf) => {
+                    const model = gltf.scene;
+                    const box = new THREE.Box3().setFromObject(model);
+                    const center = box.getCenter(new THREE.Vector3());
+                    model.position.sub(center);
+                    scene.add(model);
+                    currentModel = model;
+                    
+                    const size = box.getSize(new THREE.Vector3());
+                    const dist = Math.max(size.x, size.y, size.z) * 1.3;
+                    camera.position.set(dist * 0.8, dist * 0.6, dist);
+                    controls.target.set(0,0,0);
+                    controls.update();
+                    
+                    loadingDiv.classList.add('hidden');
+                    errorDiv.classList.add('hidden');
+                },
+                (xhr) => { loadingDiv.textContent = `⏳ ${Math.floor(xhr.loaded/xhr.total*100)}%`; },
+                (err) => {
+                    console.error('Erro no carregamento:', err);
+                    loadingDiv.classList.add('hidden');
+                    errorDiv.classList.remove('hidden');
+                    errorDiv.innerHTML = `❌ Falha ao carregar: verifique se o arquivo existe no caminho especificado.<br><span class="text-xs">${err.message}</span>`;
+                    if (!currentModel) {
+                        const fallback = new THREE.Mesh(new THREE.SphereGeometry(0.5), new THREE.MeshStandardMaterial({ color: 0xff6666 }));
+                        scene.add(fallback);
+                        currentModel = fallback;
+                    }
+                }
+            );
+        }
+
+        function resetCamera() {
+            if (currentModel) {
+                const box = new THREE.Box3().setFromObject(currentModel);
+                const size = box.getSize(new THREE.Vector3());
+                const dist = Math.max(size.x, size.y, size.z) * 1.3;
+                camera.position.set(dist * 0.8, dist * 0.6, dist);
+                controls.target.set(0,0,0);
+                controls.update();
+            } else {
+                camera.position.set(1.5,1.2,2.8);
+                controls.target.set(0,0,0);
+                controls.update();
+            }
+        }
+
+        function buildCatalog() {
+            gridContainer.innerHTML = '';
+            MODELS.forEach(m => {
+                const card = document.createElement('div');
+                card.className = 'bg-white/10 backdrop-blur-md rounded-2xl overflow-hidden cursor-pointer hover:scale-[1.02] transition border border-white/20';
+                card.onclick = () => showViewer(m.gltfUrl);
+                const fallbackImg = `https://placehold.co/400x300/1e1b4b/aaaaff?text=${encodeURIComponent(m.name)}`;
+                card.innerHTML = `
+                    <div class="h-48 overflow-hidden bg-gray-800">
+                        <img src="${m.thumbnail}" alt="${m.name}" class="w-full h-full object-cover" onerror="this.src='${fallbackImg}'">
+                    </div>
+                    <div class="p-4">
+                        <h3 class="text-xl font-bold text-white">${m.name}</h3>
+                        <p class="text-indigo-100/70 text-sm line-clamp-2">${m.desc}</p>
+                        <button class="mt-3 w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-xl">Ver em 3D →</button>
+                    </div>
+                `;
+                gridContainer.appendChild(card);
+            });
+        }
+
+        window.addEventListener('resize', () => {
+            if (camera && renderer) {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+        });
+        backBtn.addEventListener('click', showCatalog);
+        resetCamBtn.addEventListener('click', resetCamera);
+
+        buildCatalog();
+    </script>
+</body>
+</html><!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>Visualizador 3D | Catálogo de Modelos</title>
     <!-- Tailwind CSS - aviso de produção pode ser ignorado no GitHub Pages -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
